@@ -51,6 +51,7 @@ exports.initializeErrorMiddlwares = (app) => {
           res.status(403).send('Forbidden');
           return
         }
+    console.log(err)
     res.status(500).send(err.message);
   });
 }

@@ -2,9 +2,9 @@ const { Card } = require('../models/card.model.js');
 
 exports.getCard = async () => await Card.findAll();
 
-// exports.getCardByFirstName = async (name) => {
-//     return await Card.findOne({ where: { name } });
-// };
+exports.getCardById = async (id_card) => {
+    return await Card.findOne({ where: { id_card } });
+};
 
 exports.createCard = async (body) => {
     await Card.create(body);

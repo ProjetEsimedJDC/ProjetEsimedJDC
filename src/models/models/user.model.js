@@ -1,5 +1,5 @@
 const {DataTypes} = require('sequelize')
-const { sequelize } = require('./postgres.db')
+const { sequelize } = require('../postgres.db')
 
 exports.User = sequelize.define('User', {
     // Model attributes are defined here
@@ -7,24 +7,25 @@ exports.User = sequelize.define('User', {
         type: DataTypes.UUID,
         primaryKey : true,
         allowNull: false
-      },
+    },
     pseudo: {
-      type: DataTypes.STRING(50),
-      allowNull: false,
-      unique: true
+        type: DataTypes.STRING(50),
+        allowNull: false,
+        unique: true
     },
     email: {
-      type: DataTypes.STRING(100),
-      allowNull: false,
-      unique: true
+        type: DataTypes.STRING(100),
+        allowNull: false,
+        unique: true
     },
     password: {
         type: DataTypes.STRING,
         allowNull: false
-      },
+    },
     coins: {
         type: DataTypes.INTEGER,
-        allowNull: false
+        allowNull: false,
+        defaultValue: '0'
     },
     id_card_1: {
         type: DataTypes.INTEGER,
@@ -38,6 +39,6 @@ exports.User = sequelize.define('User', {
         type: DataTypes.INTEGER,
         allowNull: true
     },
-  }, {
-    // Other model options go here
-  });
+}, {
+    tableName: 'User',
+})

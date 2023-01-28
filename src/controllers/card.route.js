@@ -1,32 +1,49 @@
 const express = require('express');
 const router = express.Router();
-const cardRepository = require('../models/card-repository');
+const cardRepository = require('../models/repostories/card-repository');
 require('dotenv').config()
 
 // const { body, validationResult } = require('express-validator');
-const {Card} = require("../models/card.model");
+const { Card } = require("../models/models/card.model");
 
 router.get('/seeder', async (req, res) => {
     try {
-        await cardRepository.createCard({
-            name: "pika",
-            power : 50,
-            type : "foudre",
-            price : 50
-        });
-        await cardRepository.createCard({
-            name: "cara",
-            power : 40,
-            type : "eau",
-            price : 50
-        });
-        await cardRepository.createCard({
-            name: "draco",
-            power : 60,
-            type : "feu",
-            price : 50
-        });
+        fetch('https://pokebuildapi.fr/api/v1/pokemon')
+            .then((response) => response.json())
+            .then(async (data) => {
+                for (const pokemon of data) {
+                    let coins = 100;
+                    // let apiEvol = null;
+                    let apiEvol = pokemon.apiEvolutions[0] ? pokemon.apiEvolutions[0].pokedexId : null;
+                    let apiPreEvol = null;
 
+                    if (!pokemon.apiPreEvolution[0]){
+                        coins = 350
+                        apiPreEvol = pokemon.apiPreEvolution.pokedexIdd
+
+                        if (!pokemon.apiEvolutions[0]){
+                            coins = 800
+                        }
+                    }
+
+                    await cardRepository.createCard({
+                        name: pokemon.name,
+                        image : pokemon.image,
+                        sprite : pokemon.sprite,
+                        HP: pokemon.stats.HP,
+                        attack: pokemon.stats.attack,
+                        defense: pokemon.stats.defense,
+                        special_attack: pokemon.stats.special_attack,
+                        special_defense: pokemon.stats.special_defense,
+                        speed: pokemon.stats.speed,
+                        type_1: ((pokemon.apiTypes[0].name).toString().toLowerCase()).normalize("NFD").replace(/[\u0300-\u036f]/g, ""),
+                        type_2: pokemon.apiTypes[1]? (pokemon.apiTypes[1].name.toString().toLowerCase()).normalize("NFD").replace(/[\u0300-\u036f]/g, "") :null,
+                        apiEvolutions_id: apiEvol,
+                        apiPreEvolution_id: apiPreEvol,
+                        price: coins
+                    });
+                }
+            });
         const cards = await Card.findAll();
 
         res.status(200).send(cards)
@@ -37,6 +54,17 @@ router.get('/seeder', async (req, res) => {
 
 router.get('/', async (req, res) => {
     res.send(await cardRepository.getCard());
+});
+
+router.get('/:id', async (req, res) => {
+  const foundCard = await cardRepository.getCardById(req.params.id);
+
+  if (!foundCard) {
+    res.status(500).send('User not found');
+    return;
+  }
+
+  res.status(200).send(foundCard);
 });
 
 exports.initializeRoutes = () => router;
