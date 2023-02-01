@@ -3,6 +3,7 @@ const router = express.Router();
 const userRepository = require('../models/repostories/user-repository');
 const { User } = require("../models/models/user.model");
 const { body, validationResult } = require('express-validator');
+const bcrypt = require('bcryptjs');
 const guard = require('express-jwt-permissions')({
   requestProperty: 'auth',
 });
@@ -68,29 +69,30 @@ async (req, res) => {
 
     res.status(201).end()
   } catch (e) {
-    res.status(500).send(e);
+    console.log(e.errors)
+
+    res.status(500).send(e.errors);
   }
 });
 
 router.put('/update/:id_user', async (req, res) => {
   try {
-    let userUpdate = await userRepository.updateUser(req.params.id_user,req.body);
+    await userRepository.updateUser(req.params.id_user,req.body);
 
-    res.status(200).send(userUpdate);
+    res.status(200).send('Updated');
   } catch (e) {
-    console.log(e)
-    res.send(e).end();
+    res.status(500).send(e.message);
   }
 });
 
 router.put('/chose-card/:id_user/:id_card_user/:id_card', async (req, res) => {
   try {
-    await userRepository.updateUserChoseCard1(req.params.id_user,req.params.id_card_user,req.params.id_card ).catch((err) => res.status(500).send(err.message));
+    await userRepository.updateUserChoseCard1(req.params.id_user,req.params.id_card_user,req.params.id_card )
     let foundUser = await userRepository.getUserById(req.params.id_user)
 
     res.status(200).send(foundUser);
   } catch (e) {
-    res.send(e).end();
+    res.status(500).send(e.message);
   }
 });
 
@@ -111,6 +113,27 @@ router.get('/:id', async (req, res) => {
   }
 
   res.status(200).send(foundUser);
+});
+
+router.get('/check/password/:id/:password', async (req, res) => {
+  const foundUser = await userRepository.getUserById(req.params.id);
+
+  if (!foundUser) {
+    res.status(500).send('User not found');
+    return;
+  }
+
+  await bcrypt.compare(req.params.password, foundUser.password, (err, data) => {
+    //if error than throw error
+    if (err) throw err
+
+    //if both match than you can do anything
+    if (data) {
+      return res.status(200).end()
+    } else {
+      return res.status(401).end()
+    }
+  })
 });
 
 // router.put('/:id',guard.check(['admin']), async (req, res) => {

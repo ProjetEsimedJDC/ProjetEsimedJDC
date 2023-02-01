@@ -24,15 +24,6 @@ router.get('/seeder', async (req, res) => {
             });
         }
 
-        // await userCardRepository.createUserCard({
-        //     id_user: await userRepository.getIdUserByEmail('adriencompare@gmail.com'),
-        //     id_card: '2',
-        // });
-        // await userCardRepository.createUserCard({
-        //     id_user: await userRepository.getIdUserByEmail('adriencompare@gmail.com'),
-        //     id_card: '3',
-        // });
-
         await userCardRepository.getAllUserCardById(await userRepository.getIdUserByEmail('test@gmail.com'));
 
         res.status(200).end()
@@ -47,27 +38,76 @@ router.get('/load/:id', async (req, res) => {
         let id_user = req.params.id
         const user_cards = await userCardRepository.getAllUserCardById(id_user)
 
-          if (!user_cards) {
-            res.status(500).send('User not found');
-            return;
-          }
+        if (!user_cards) {
+          res.status(500).send('User not found');
+          return;
+        }
 
-          res.send(user_cards);
+        let array = []
+        for (const user_card of user_cards) {
+            array.push(await cardRepository.getCardById(user_card.id_card));
+        }
+
+          res.send(array);
     } catch (e) {
         res.status(500).send(e);
     }
 });
 
-// router.get('/:firstName', guard.check(['admin']), async (req, res) => {
-// // router.get('/:firstName', async (req, res) => {
-//   const foundUser = await userRepository.getUserByFirstName(req.params.firstName);
-//
-//   if (!foundUser) {
-//     res.status(500).send('User not found');
-//     return;
-//   }
-//
-//   res.send(foundUser);
-// });
+router.get('/load/without-ones-he-has/:id', async (req, res) => {
+    try {
+        const user_cards = await userCardRepository.getAllUserCardById(req.params.id)
+
+        let UserCards = []
+        for (const user_card of user_cards) {
+            let card = await cardRepository.getCardById(user_card.id_card)
+            UserCards.push(card.id_card);
+        }
+
+        let array = []
+        let allCards = await cardRepository.getCard()
+
+        for (const Card of allCards) {
+            if (!UserCards.includes(Card.id_card)){
+                array.push(await cardRepository.getCardById(Card.id_card));
+            }
+        }
+
+        res.status(200).send(array);
+    } catch (e) {
+        res.status(500).send(e);
+    }
+});
+
+router.get('/load/without-deck/:id', async (req, res) => {
+    try {
+        const foundUser = await userRepository.getUserById(req.params.id);
+
+        if (!foundUser) {
+            res.status(500).send('User not found');
+            return;
+        }
+
+        const user_cards = await userCardRepository.getAllUserCardById(req.params.id)
+        let array = []
+        for (const user_card of user_cards) {
+            if(foundUser.id_card_1 === user_card.id_card  ){
+            } else if (foundUser.id_card_2 === user_card.id_card ){
+            } else if (foundUser.id_card_3 === user_card.id_card) {
+            } else {
+                array.push(await cardRepository.getCardById(user_card.id_card));
+            }
+        }
+
+        if (!array) {
+            res.status(500).send('User not having cards');
+            return;
+        }
+
+        res.status(200).send(array);
+    } catch (e) {
+        res.status(500).send(e);
+    }
+});
 
 exports.initializeRoutes = () => router;

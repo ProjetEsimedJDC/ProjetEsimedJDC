@@ -1,6 +1,6 @@
 const { Sequelize } = require('sequelize');
 
-exports.sequelize = new Sequelize('projetJDA', 'postgres', 'admin', {
+exports.sequelize = new Sequelize('projetJDA', 'root', '', {
     host: 'localhost',
-    dialect: 'postgres'
+    dialect: 'mariadb'
 });
