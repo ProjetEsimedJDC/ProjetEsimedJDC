@@ -1,4 +1,5 @@
 const express = require('express');
+const ably = require('ably');
 const { initializeConfigMiddlewares, initializeErrorMiddlwares } = require('./middlewares');
 const userRoutes = require('../controllers/user.routes');
 const authRoutes = require('../controllers/auth.route');
@@ -24,7 +25,6 @@ class WebServer {
     Card.belongsToMany(User, { through: User_card, foreignKey: 'id_card' });
 
     sequelize.sync();
-    // sequelize.sync({ force: true });
 
     initializeConfigMiddlewares(this.app);
     this._initializeRoutes();
@@ -47,6 +47,20 @@ class WebServer {
     this.app.use('/auth', authRoutes.initializeRoutes());
     this.app.use('/cards', cardRoutes.initializeRoutes());
     this.app.use('/user-cards', userCardRoutes.initializeRoutes());
+
+    this.app.use('/ws', (req, res) => {
+      const ablyClient = new ably.Realtime({
+        key: process.env.ABLY_API_KEY,
+        clientId: "8c76c82f-10de-4900-961c-bd9c64dee3d5",
+      });
+      ablyClient.connection.on('connected', () => {
+        const channel = ablyClient.channels.get('example-channel');
+        channel.subscribe((message) => {
+          console.log('connect')
+          res.json(message.data);
+        });
+      });
+    });
   }
 }
 

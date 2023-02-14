@@ -23,6 +23,7 @@ router.post('/login',
     try {
         const foundUser = await userRepository.getUserByEmail(req.body.email);
 
+        console.log(foundUser)
         const psw = bcrypt.compareSync(req.body.password, foundUser.password)
 
         if(psw === true)
