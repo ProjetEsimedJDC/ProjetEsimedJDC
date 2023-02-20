@@ -35,7 +35,7 @@ class WebServer {
 
   start() {
     this.server = http.createServer(this.app);
-    this.io = socketIo(this.server);
+    this.io = socketIo(this.server,{ cors: { origin: '*', } });
     this._initializeWebSocket();
     this.server.listen(this.port, () => {
       console.log(`Example app listening on port ${this.port}`);
