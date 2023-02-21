@@ -55,16 +55,32 @@ class WebServer {
   }
 
   _initializeWebSocket() {
+    let isPairOrImpair = 1
+    let countRoom = 1;
+    let room = `room${countRoom}`
+
     this.io.on('connection', (socket) => {
       console.log(`A user connected: ${socket.id}`);
 
-      socket.on('disconnect', () => {
-        console.log(`A user disconnected: ${socket.id}`);
+      console.log('size : ',socket.rooms.size)
+      socket.join(room);
+      console.log(`${socket.id} a rejoint la room : ${room}`)
+      this.io.to(room).emit('roomCreated', room);
+
+      if (isPairOrImpair%2 === 0) {
+        room = `room${countRoom}`
+      }
+      isPairOrImpair++
+
+      socket.on('playerData', (player) => {
+        console.log(`[playerData] ${player.pseudo}`, player);
+
+        // envoyer les données du joueur à tous les sockets connectés à la salle "room1"
+        this.io.to(room).emit('test', player);
       });
 
-      socket.on('example-event', (data) => {
-        console.log(`Received example-event: ${data}`);
-        this.io.emit('example-event', data);
+      socket.on('disconnect', () => {
+        console.log(`A user disconnected: ${socket.id}`);
       });
     });
   }
