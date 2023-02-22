@@ -9,8 +9,15 @@ const { sequelize } = require('../models/postgres.db')
 const { User } = require("../models/models/user.model");
 const { Card } = require("../models/models/card.model");
 const { User_card } = require("../models/models/user_card.model");
+const { Game } = require("../models/models/game.model");
+const { Game_history } = require("../models/models/game_history.model");
+
+const gameRepository = require('../models/repostories/game-repository');
+
+
 const http = require('http');
 const socketIo = require('socket.io');
+const userRepository = require("../models/repostories/user-repository");
 
 class WebServer {
   app = undefined;
@@ -24,6 +31,9 @@ class WebServer {
 
     User.belongsToMany(Card, { through: User_card, foreignKey: 'id_user' });
     Card.belongsToMany(User, { through: User_card, foreignKey: 'id_card' });
+
+    User.belongsToMany(Game, { through: Game_history, foreignKey: 'id_user' });
+    Game.belongsToMany(User, { through: Game_history, foreignKey: 'id_game' });
 
     sequelize.sync();
     // sequelize.sync({ force: true });
@@ -55,33 +65,59 @@ class WebServer {
   }
 
   _initializeWebSocket() {
-    let isPairOrImpair = 1
-    let countRoom = 1;
-    let room = `room${countRoom}`
+    let playerCount = 0;
+    let playerCountRoom = 0;
+    let roomCount = 1;
+    let currentRoom = `room${roomCount}`;
+
+    let usersRoom = [];
 
     this.io.on('connection', (socket) => {
-      console.log(`A user connected: ${socket.id}`);
+      playerCount++;
 
-      console.log('size : ',socket.rooms.size)
-      socket.join(room);
-      console.log(`${socket.id} a rejoint la room : ${room}`)
-      this.io.to(room).emit('roomCreated', room);
+      socket.on('playerData', async (player) => {
+        usersRoom.push(player.id_user)
+        console.log(`***** ${player.pseudo} vient de se connecter, total de joueurs : ${playerCount}`);    //Log le serveur
 
-      if (isPairOrImpair%2 === 0) {
-        room = `room${countRoom}`
-      }
-      isPairOrImpair++
+        socket.join(currentRoom);                                                  //Rejoint la room
+        console.log(`***** ${player.pseudo} a rejoint la room : ${currentRoom}`)   //Log le serveur
 
-      socket.on('playerData', (player) => {
-        console.log(`[playerData] ${player.pseudo}`, player);
+        socket.emit('joined-lobby', currentRoom);                                 //Informe le client qu'il a rejoint la room
 
-        // envoyer les données du joueur à tous les sockets connectés à la salle "room1"
-        this.io.to(room).emit('test', player);
+        this.io.to(currentRoom).emit('new-player', player, usersRoom.length);    // Informe le client qu'un utilisateur a rejoint la partie
+
+
+        if (usersRoom.length === 2) {
+          //Création de la room avec les joueurs à l'intérieur en BDD
+          await gameRepository.createGame(currentRoom,usersRoom);
+
+          //Affiche qui on affronte
+          this.io.to(currentRoom).emit('game-created', usersRoom)
+
+          // Si deux joueurs sont connectés, crée une nouvelle salle
+          roomCount++;
+          currentRoom = `room${roomCount}`;
+          usersRoom = [];
+        }
+
+        socket.on('disconnect', () => {
+          playerCount--
+          playerCountRoom--
+          console.log(`***** ${player.pseudo} s'est déconnecté`);         //Log le serveur
+          console.log('***** nombre de joueurs connecté ', playerCount)   //Log le serveur
+        });
       });
 
-      socket.on('disconnect', () => {
-        console.log(`A user disconnected: ${socket.id}`);
-      });
+      // this.io.to(room).emit('connected-player', player);          //Envoie un message à tous les clients
+
+
+      // if (isPairOrImpair % 2 === 0) {
+      //   countRoom++
+      //   room = `room${countRoom}`
+      //   console.log(`***** La ${room} vient d'etre créé`)   //Log le serveur
+      // }
+
+
     });
   }
 }
