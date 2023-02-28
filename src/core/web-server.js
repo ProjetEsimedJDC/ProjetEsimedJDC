@@ -13,6 +13,7 @@ const { Game } = require("../models/models/game.model");
 const { Game_history } = require("../models/models/game_history.model");
 
 const gameRepository = require('../models/repostories/game-repository');
+const cardRepository = require('../models/repostories/card-repository');
 
 
 const http = require('http');
@@ -72,6 +73,72 @@ class WebServer {
 
     let usersRoom = [];
 
+    let user1Cards;
+    let user2Cards;
+
+    let user1turn;
+    let user2turn;
+
+    let resultj1;
+    let resultj2;
+    function j1played() {
+      let foundIndex;
+
+      user2Cards.forEach((user2Card, index) => {
+        if (user2Card.id_card === user2turn[0].id_card) {
+          foundIndex = index
+        }
+      })
+
+      console.log('pokemon j2 '+user2Cards[0].name + user2Cards[1].name,user2Cards[2].name)
+
+      if (user1turn[1] === 'attack') {
+        user2Cards[foundIndex].HP = user2Cards[foundIndex].HP - user1turn[0].attack
+
+        if (user2Cards[foundIndex].HP <= 0) {
+          console.log(`***** ${user1turn[0].name} a tué ${user2Cards[foundIndex].name}`);
+
+          return [true, user1turn[0], user2Cards[foundIndex], [usersRoom[1]]]
+        }
+        return [false, user1turn[0], user2Cards[foundIndex], [usersRoom[1]]]
+
+      }
+
+      if (user1turn[1] === 'defense') {
+        console.log('***** j1 a défendu')
+      }
+
+      return [false, user1turn[0], user2Cards[foundIndex],[usersRoom[1]]]
+    }
+
+    function j2played() {
+      let foundIndex;
+      user1Cards.forEach((user1Card, index) => {
+        if (user1Card.id_card === user1turn[0].id_card) {
+          foundIndex = index
+        }
+      })
+
+      console.log('pokemon j1 '+user1Cards[0].name + user1Cards[1].name,user1Cards[2].name)
+
+      if (user2turn[1] === 'attack') {
+        user1Cards[foundIndex].HP = user1Cards[foundIndex].HP - user2turn[0].attack
+
+        if (user1Cards[foundIndex].HP <= 0) {
+          console.log(`***** ${user2turn[0].name} a tué ${user1Cards[foundIndex].name}`)
+          return [true, user2turn[0], user1Cards[foundIndex], usersRoom[0]]
+        }
+        return [false, user2turn[0], user1Cards[foundIndex], usersRoom[0]]
+
+      }
+
+      if (user1turn[1] === 'defense') {
+        console.log('***** j1 a défendu')
+      }
+      return [false, user2turn[0] ,user1Cards[foundIndex], usersRoom[0]]
+    }
+
+
     this.io.on('connection', (socket) => {
       playerCount++;
 
@@ -94,10 +161,16 @@ class WebServer {
           //Affiche qui on affronte
           this.io.to(currentRoom).emit('game-created', usersRoom)
 
-          // Si deux joueurs sont connectés, crée une nouvelle salle
-          roomCount++;
-          currentRoom = `room${roomCount}`;
-          usersRoom = [];
+
+          user1Cards = await cardRepository.getCardsUserByUserId(usersRoom[0])
+          user2Cards = await cardRepository.getCardsUserByUserId(usersRoom[1])
+          this.io.to(currentRoom).emit('start-game', usersRoom[0])
+
+
+          // // Si deux joueurs sont connectés, crée une nouvelle salle
+          // roomCount++;
+          // currentRoom = `room${roomCount}`;
+          // usersRoom = [];
         }
 
         socket.on('disconnect', () => {
@@ -106,6 +179,79 @@ class WebServer {
           console.log(`***** ${player.pseudo} s'est déconnecté`);         //Log le serveur
           console.log('***** nombre de joueurs connecté ', playerCount)   //Log le serveur
         });
+      });
+
+      socket.on('player-1-action',(i,action)=>{
+        console.log(`***** J1 joue ${user1Cards[i-1].name} et ${action}`);
+        user1turn = [user1Cards[i-1], action]
+        this.io.to(currentRoom).emit('pokemon-player-2', usersRoom[1])
+      });
+
+      socket.on('player-2-action',(i,action)=>{
+        console.log(`***** J2 joue ${user2Cards[i-1].name} et ${action}`);
+        user2turn = [user2Cards[i-1], action]
+
+        console.log('----- calcul des résultats')
+
+        //si la vitesse est superior à l'autre pokemon, il a plus de chance de commencer à attaquer
+        let randomNumberBetweenSpeedPokemons = Math.floor(Math.random() * (user1turn[0].speed+user2turn[0].speed - 1 + 1)) + 1;
+        if (user1turn[0].speed > user2turn[0].speed) {
+
+          if (randomNumberBetweenSpeedPokemons <= user1turn[0].speed) {
+            let playerStart = usersRoom[0]
+            let pourcent = Math.round(((user1turn[0].speed)/((user1turn[0].speed)+(user2turn[0].speed)))*100)
+            console.log('***** '+playerStart+' commence avec '+ pourcent +'% de chance de commencer')
+
+            resultj1 = j1played();
+            if (!resultj1[0]) { // result[0] vérifie le booléen qui check si il a tué le pokémon adverse ou non
+              resultj2 = j2played();
+              return this.io.to(currentRoom).emit('display round', user1turn, user2turn,playerStart, pourcent, resultj1, resultj2)
+            } else {
+              return this.io.to(currentRoom).emit('display round', user1turn, user2turn,playerStart, pourcent, resultj1, null)
+            }
+
+          } else {
+            let playerStart = usersRoom[1]
+            let pourcent = Math.round(((user2turn[0].speed) / ((user1turn[0].speed) + (user2turn[0].speed))) * 100)
+            console.log('**** '+playerStart+' commence avec ' + pourcent + '% de chance de commencer')
+
+            resultj2 = j2played();
+            if (!resultj2[0]) { // result[0] vérifie le booléen qui check si il a tué le pokémon adverse ou non
+              resultj1 = j1played();
+              return this.io.to(currentRoom).emit('display round', user1turn, user2turn,playerStart, pourcent, resultj2, resultj1)
+            } else {
+              return this.io.to(currentRoom).emit('display round', user1turn, user2turn,playerStart, pourcent, resultj2, null)
+            }
+          }
+
+        } else {
+          if (randomNumberBetweenSpeedPokemons > user1turn[0].speed) {
+            let playerStart = usersRoom[1]
+            let pourcent = Math.round(((user2turn[0].speed) / ((user1turn[0].speed) + (user2turn[0].speed))) * 100)
+            console.log('**** '+playerStart+' commence avec ' + pourcent + '% de chance de commencer')
+
+            resultj2 = j2played();
+            if (!resultj2[0]) { // result[0] vérifie le booléen qui check si il a tué le pokémon adverse ou non
+              resultj1 = j1played();
+              return this.io.to(currentRoom).emit('display round', user1turn, user2turn,playerStart, pourcent, resultj2, resultj1)
+            } else {
+              return this.io.to(currentRoom).emit('display round', user1turn, user2turn,playerStart, pourcent, resultj2, null)
+            }
+
+          } else {
+            let playerStart = usersRoom[0]
+            let pourcent = Math.round(((user1turn[0].speed)/((user1turn[0].speed)+(user2turn[0].speed)))*100)
+            console.log('***** '+playerStart+' commence avec '+ pourcent +'% de chance de commencer')
+
+            resultj1 = j1played();
+            if (!resultj1[0]) { // result[0] vérifie le booléen qui check si il a tué le pokémon adverse ou non
+              resultj2 = j2played();
+              return this.io.to(currentRoom).emit('display round', user1turn, user2turn,playerStart, pourcent, resultj1, resultj2)
+            } else {
+              return this.io.to(currentRoom).emit('display round', user1turn, user2turn,playerStart, pourcent, resultj1, null)
+            }
+          }
+        }
       });
 
       // this.io.to(room).emit('connected-player', player);          //Envoie un message à tous les clients

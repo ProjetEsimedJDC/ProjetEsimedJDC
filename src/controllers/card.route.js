@@ -67,4 +67,15 @@ router.get('/:id', async (req, res) => {
   res.status(200).send(foundCard);
 });
 
+router.get('/find-all-user-cards/:id', async (req, res) => {
+    const foundCard = await cardRepository.getCardsUserByUserId(req.params.id);
+
+    if (!foundCard) {
+        res.status(500).send('User not found or dont having cards');
+        return;
+    }
+
+    res.status(200).send(foundCard);
+});
+
 exports.initializeRoutes = () => router;
