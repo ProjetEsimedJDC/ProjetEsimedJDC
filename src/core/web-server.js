@@ -124,7 +124,7 @@ class WebServer {
         }
 
         io.to(roomName).emit('game-created', room.users);
-        io.to(roomName).emit('turn-player', room.users[0])
+        io.to(roomName).emit('turn-player', room.users[0], gameData.rooms[ROOM].userCards[0])
       }
     }
 
@@ -163,9 +163,40 @@ class WebServer {
       return determinePlayerPlayFirst(randomNumberBetweenSpeedPokemons, playerMaxSpeed, playerMinSpeed, pokemonMaxSpeed, pokemonMinSpeed);
 
     }
+
+    function checkIfEndGame() {
+      let endgame = false
+      let counter = 0
+      gameData.rooms[ROOM].userCards[0].forEach((user1Card, index) => {
+        if (user1Card.HP <= 0) {
+          counter++
+        }
+      })
+
+      if (counter === 3) {
+        console.log(`${gameData.rooms[ROOM].users[1].pseudo} a gagné`)
+        io.to(ROOM).emit('end-game',gameData.rooms[ROOM].users[1])
+        endgame = true
+      }
+
+      counter = 0
+      gameData.rooms[ROOM].userCards[1].forEach((user1Card, index) => {
+        if (user1Card.HP <= 0) {
+          counter++
+        }
+      })
+
+      if (counter === 3) {
+        console.log(`${gameData.rooms[ROOM].users[0].pseudo} a gagné`)
+        io.to(ROOM).emit('end-game',gameData.rooms[ROOM].users[0])
+        endgame = true
+      }
+      return endgame;
+    }
+
     function playCard() {
       if (gameData.rooms[ROOM].turns.length < MAX_PLAYERS_PER_ROOM){
-        io.to(ROOM).emit('turn-player', gameData.rooms[ROOM].users[1])
+        io.to(ROOM).emit('turn-player', gameData.rooms[ROOM].users[1], gameData.rooms[ROOM].userCards[1])
       } else {
         let playerFirstAndPourcent = CompareSpeedPlayerAndDetermineWhoPlayFirst();
         let firstPlayerIndex;
@@ -186,18 +217,17 @@ class WebServer {
         }
         io.to(ROOM).emit('display round', gameData.rooms[ROOM].users[0],gameData.rooms[ROOM].users[1],playerFirstAndPourcent, gameData.rooms[ROOM].turns[0],gameData.rooms[ROOM].turns[1], gameData.rooms[ROOM].results[0], gameData.rooms[ROOM].results.length === 2 ? gameData.rooms[ROOM].results[1] : null)
 
-        // const result = [false, playerCard, opponentCard, room.users[playerIndex]];
-        // room.results.push(result);
-        // io.to(roomName).emit('turn-result', result);
-        //
-        //
-        // if (room.results.length === MAX_PLAYERS_PER_ROOM) {
-        //   room.turns = [];
-        //   room.results = [];
-        //
-        //   const nextPlayerIndex = playerIndex === 0 ? 1 : 0;
-        //   io.to(roomName).emit('next-turn', room.users[nextPlayerIndex]);
-        // }
+        let endgame = checkIfEndGame();
+
+        io.to(ROOM).emit('update-card', gameData.rooms[ROOM].users[0], gameData.rooms[ROOM].userCards[0],gameData.rooms[ROOM].users[1], gameData.rooms[ROOM].userCards[1])
+        if (endgame) {
+
+        } else {
+          gameData.rooms[ROOM].turns = [];
+          gameData.rooms[ROOM].results = [];
+
+          io.to(ROOM).emit('turn-player', gameData.rooms[ROOM].users[0], gameData.rooms[ROOM].userCards[0])
+        }
       }
     }
 
