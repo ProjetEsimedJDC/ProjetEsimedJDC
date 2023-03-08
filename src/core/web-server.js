@@ -69,7 +69,7 @@ class WebServer {
   _initializeWebSocket() {
     const MAX_PLAYERS_PER_ROOM = 2;
     let current_room = 1;
-    const ROOM = `room${current_room}`;
+    let ROOM = `room${current_room}`;
     const io = this.io
 
     const gameData = {
@@ -86,11 +86,26 @@ class WebServer {
       }
     };
 
-    function setResult (playerIndex, opponentIndex) {
-      let actionTurnPlayer = gameData.rooms[ROOM].turns[playerIndex][1]
-      let pokemonTurnPlayer = gameData.rooms[ROOM].turns[playerIndex][0]
-      let opponentPokemonPlay = gameData.rooms[ROOM].turns[opponentIndex][0]
-      let opponentCards = gameData.rooms[ROOM].userCards[opponentIndex]
+    async function checkIfReadyToStart(roomName) {
+      let RoomFull = roomName;
+      const room = gameData.rooms[roomName];
+      if (room.users.length === MAX_PLAYERS_PER_ROOM) {
+        room.readyToStart = true;
+
+        for (const user of room.users) {
+          let cards = await cardRepository.getCardsUserByUserId(user.id_user);
+          room.userCards.push(cards)
+        }
+
+        io.to(RoomFull).emit('game-created', room.users);
+        io.to(RoomFull).emit('turn-player', room.users[0], gameData.rooms[ROOM].userCards[0], RoomFull)
+      }
+    }
+    function setResult (playerIndex, opponentIndex,RoomFull) {
+      let actionTurnPlayer = gameData.rooms[RoomFull].turns[playerIndex][1]
+      let pokemonTurnPlayer = gameData.rooms[RoomFull].turns[playerIndex][0]
+      let opponentPokemonPlay = gameData.rooms[RoomFull].turns[opponentIndex][0]
+      let opponentCards = gameData.rooms[RoomFull].userCards[opponentIndex]
       let opponentPokemonIndex;
 
         opponentCards.forEach((opponentCard, index) => {
@@ -103,29 +118,14 @@ class WebServer {
           opponentCards[opponentPokemonIndex].HP = opponentCards[opponentPokemonIndex].HP - pokemonTurnPlayer.attack
 
           if (opponentCards[opponentPokemonIndex].HP <= 0){
-            gameData.rooms[ROOM].results.push([true, pokemonTurnPlayer, opponentCards[opponentPokemonIndex], opponentIndex])
+            gameData.rooms[RoomFull].results.push([true, pokemonTurnPlayer, opponentCards[opponentPokemonIndex], opponentIndex])
             return true
           }
 
-          gameData.rooms[ROOM].results.push([false, pokemonTurnPlayer, opponentCards[opponentPokemonIndex], opponentIndex])
+          gameData.rooms[RoomFull].results.push([false, pokemonTurnPlayer, opponentCards[opponentPokemonIndex], opponentIndex])
           return false
         }
       return 0
-    }
-
-    async function checkIfReadyToStart(roomName) {
-      const room = gameData.rooms[roomName];
-      if (room.users.length === MAX_PLAYERS_PER_ROOM) {
-        room.readyToStart = true;
-
-        for (const user of room.users) {
-          let cards = await cardRepository.getCardsUserByUserId(user.id_user);
-          room.userCards.push(cards)
-        }
-
-        io.to(roomName).emit('game-created', room.users);
-        io.to(roomName).emit('turn-player', room.users[0], gameData.rooms[ROOM].userCards[0])
-      }
     }
 
     function determinePlayerPlayFirst(randomNumberBetweenSpeedPokemons, playerMaxSpeed, playerMinSpeed, pokemonMaxSpeed, pokemonMinSpeed) {
@@ -142,20 +142,20 @@ class WebServer {
       }
     }
 
-    function CompareSpeedPlayerAndDetermineWhoPlayFirst() {
-      let pokemonPlayer1Speed = gameData.rooms[ROOM].turns[0][0].speed
-      let pokemonPlayer2Speed = gameData.rooms[ROOM].turns[1][0].speed
+    function CompareSpeedPlayerAndDetermineWhoPlayFirst(RoomFull) {
+      let pokemonPlayer1Speed = gameData.rooms[RoomFull].turns[0][0].speed
+      let pokemonPlayer2Speed = gameData.rooms[RoomFull].turns[1][0].speed
       let randomNumberBetweenSpeedPokemons = Math.floor(Math.random() * pokemonPlayer1Speed + pokemonPlayer2Speed - 1 + 1) + 1;
       let playerMaxSpeed,playerMinSpeed, pokemonMaxSpeed, pokemonMinSpeed
 
       if (pokemonPlayer1Speed > pokemonPlayer2Speed) {
-        playerMaxSpeed = gameData.rooms[ROOM].users[0]
-        playerMinSpeed = gameData.rooms[ROOM].users[1]
+        playerMaxSpeed = gameData.rooms[RoomFull].users[0]
+        playerMinSpeed = gameData.rooms[RoomFull].users[1]
         pokemonMaxSpeed = pokemonPlayer1Speed
         pokemonMinSpeed = pokemonPlayer2Speed
       } else {
-        playerMaxSpeed = gameData.rooms[ROOM].users[1]
-        playerMinSpeed = gameData.rooms[ROOM].users[0]
+        playerMaxSpeed = gameData.rooms[RoomFull].users[1]
+        playerMinSpeed = gameData.rooms[RoomFull].users[0]
         pokemonMaxSpeed = pokemonPlayer2Speed
         pokemonMinSpeed = pokemonPlayer1Speed
       }
@@ -164,45 +164,57 @@ class WebServer {
 
     }
 
-    function checkIfEndGame() {
+    function checkIfEndGame(RoomFull) {
       let endgame = false
       let counter = 0
-      gameData.rooms[ROOM].userCards[0].forEach((user1Card, index) => {
+      gameData.rooms[RoomFull].userCards[0].forEach((user1Card, index) => {
         if (user1Card.HP <= 0) {
           counter++
         }
       })
 
       if (counter === 3) {
-        console.log(`${gameData.rooms[ROOM].users[1].pseudo} a gagné`)
-        io.to(ROOM).emit('end-game',gameData.rooms[ROOM].users[1])
+        console.log(`${gameData.rooms[RoomFull].users[1].pseudo} a gagné`)
+        io.to(RoomFull).emit('end-game',gameData.rooms[RoomFull].users[1])
         endgame = true
       }
 
       counter = 0
-      gameData.rooms[ROOM].userCards[1].forEach((user1Card, index) => {
+      gameData.rooms[RoomFull].userCards[1].forEach((user1Card, index) => {
         if (user1Card.HP <= 0) {
           counter++
         }
       })
 
       if (counter === 3) {
-        console.log(`${gameData.rooms[ROOM].users[0].pseudo} a gagné`)
-        io.to(ROOM).emit('end-game',gameData.rooms[ROOM].users[0])
+        console.log(`${gameData.rooms[RoomFull].users[0].pseudo} a gagné`)
+        io.to(RoomFull).emit('end-game',gameData.rooms[RoomFull].users[0])
         endgame = true
       }
       return endgame;
     }
 
-    function playCard() {
-      if (gameData.rooms[ROOM].turns.length < MAX_PLAYERS_PER_ROOM){
-        io.to(ROOM).emit('turn-player', gameData.rooms[ROOM].users[1], gameData.rooms[ROOM].userCards[1])
+    function createNewRoom() {
+      current_room++;
+      ROOM = `room${current_room}`;
+      gameData.rooms[ROOM] = {
+        playerCount: 0,
+        users: [],
+        userCards: [],
+        turns: [],
+        results: [],
+        readyToStart: false
+      };
+    }
+    function playCard(RoomFull) {
+      if (gameData.rooms[RoomFull].turns.length < MAX_PLAYERS_PER_ROOM){
+        io.to(RoomFull).emit('turn-player', gameData.rooms[RoomFull].users[1], gameData.rooms[RoomFull].userCards[1],RoomFull)
       } else {
-        let playerFirstAndPourcent = CompareSpeedPlayerAndDetermineWhoPlayFirst();
+        let playerFirstAndPourcent = CompareSpeedPlayerAndDetermineWhoPlayFirst(RoomFull);
         let firstPlayerIndex;
         let secondPlayerIndex;
 
-        gameData.rooms[ROOM].users.forEach((user, index) => {
+        gameData.rooms[RoomFull].users.forEach((user, index) => {
           if (user.id_user === playerFirstAndPourcent[0].id_user) {
             firstPlayerIndex = index;
           }
@@ -210,23 +222,23 @@ class WebServer {
 
         secondPlayerIndex = firstPlayerIndex === 1 ? 0 : 1;
 
-        let setResultFirstPlayer = setResult(firstPlayerIndex,secondPlayerIndex)
+        let setResultFirstPlayer = setResult(firstPlayerIndex,secondPlayerIndex,RoomFull)
 
         if (!setResultFirstPlayer){
-          setResult(secondPlayerIndex, firstPlayerIndex)
+          setResult(secondPlayerIndex, firstPlayerIndex,RoomFull)
         }
-        io.to(ROOM).emit('display round', gameData.rooms[ROOM].users[0],gameData.rooms[ROOM].users[1],playerFirstAndPourcent, gameData.rooms[ROOM].turns[0],gameData.rooms[ROOM].turns[1], gameData.rooms[ROOM].results[0], gameData.rooms[ROOM].results.length === 2 ? gameData.rooms[ROOM].results[1] : null)
+        io.to(RoomFull).emit('display round', gameData.rooms[RoomFull].users[0],gameData.rooms[RoomFull].users[1],playerFirstAndPourcent, gameData.rooms[RoomFull].turns[0],gameData.rooms[RoomFull].turns[1], gameData.rooms[RoomFull].results[0], gameData.rooms[RoomFull].results.length === 2 ? gameData.rooms[RoomFull].results[1] : null)
 
-        let endgame = checkIfEndGame();
+        let endgame = checkIfEndGame(RoomFull);
 
-        io.to(ROOM).emit('update-card', gameData.rooms[ROOM].users[0], gameData.rooms[ROOM].userCards[0],gameData.rooms[ROOM].users[1], gameData.rooms[ROOM].userCards[1])
+        io.to(RoomFull).emit('update-card', gameData.rooms[RoomFull].users[0], gameData.rooms[RoomFull].userCards[0],gameData.rooms[RoomFull].users[1], gameData.rooms[RoomFull].userCards[1], RoomFull)
         if (endgame) {
 
         } else {
-          gameData.rooms[ROOM].turns = [];
-          gameData.rooms[ROOM].results = [];
+          gameData.rooms[RoomFull].turns = [];
+          gameData.rooms[RoomFull].results = [];
 
-          io.to(ROOM).emit('turn-player', gameData.rooms[ROOM].users[0], gameData.rooms[ROOM].userCards[0])
+          io.to(RoomFull).emit('turn-player', gameData.rooms[RoomFull].users[0], gameData.rooms[RoomFull].userCards[0], RoomFull)
         }
       }
     }
@@ -253,25 +265,26 @@ class WebServer {
         } else {
           // Si la salle est pleine, commencez la partie
           await checkIfReadyToStart(ROOM);
-          // current_room++
+          createNewRoom();
         }
       });
 
       // Quand un joueur joue une carte, enregistrez-la et renvoyez les résultats
-      socket.on('player-action', async (indexPokemonFront, action, userId) => {
+      socket.on('player-action', async (indexPokemonFront, action, userId,RoomFull) => {
+        console.log(RoomFull)
         let indexPokemon = indexPokemonFront-1
         let playerIndex;
-        gameData.rooms[ROOM].users.forEach((user, index) => {
+        gameData.rooms[RoomFull].users.forEach((user, index) => {
             if (user.id_user === userId) {
               playerIndex = index;
             }
         });
 
         // Enregistrer la carte du joueur dans le tour actuel
-        gameData.rooms[ROOM].turns[playerIndex] = [gameData.rooms[ROOM].userCards[playerIndex][indexPokemon], action];
+        gameData.rooms[RoomFull].turns[playerIndex] = [gameData.rooms[RoomFull].userCards[playerIndex][indexPokemon], action];
 
         // Vérifiez si les deux joueurs ont joué leur tour, puis passez au tour suivant si c'est le cas
-        playCard();
+        playCard(RoomFull);
       });
 
       socket.on('disconnect', () => {
