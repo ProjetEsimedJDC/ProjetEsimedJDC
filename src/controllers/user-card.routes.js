@@ -6,6 +6,10 @@ require('dotenv').config()
 // const { body, validationResult } = require('express-validator');
 const {User_card} = require("../models/models/user_card.model");
 const cardRepository = require('../models/repostories/card-repository');
+const {body, validationResult} = require("express-validator");
+const uuid = require('uuid');
+const {User} = require("../models/models/user.model");
+
 
 router.get('/seeder', async (req, res) => {
     try {
@@ -109,5 +113,41 @@ router.get('/load/without-deck/:id', async (req, res) => {
         res.status(500).send(e);
     }
 });
+
+router.post('/buyCard',async (req, res) => {
+        try {
+            const id_user = req.body.id_user
+            const id_card = req.body.id_card
+
+            const user = await userRepository.getUserById(id_user)
+            const card = await cardRepository.getCardById(id_card)
+
+            if (card.price > user.coins){
+                res.status(500).send('L\'utilisateur n`\'a pas assez de pièces pour acheter cette carte');
+            }
+
+            const foundUser = await User.findOne({ where: { id_user } });
+
+            if (!foundUser) {
+                res.status(500).send('L\'utilisateur est introuvable');
+            }
+
+            await User.update({
+                coins :  user.coins - card.price
+            }, { where: { id_user } });
+
+            await User_card.create({
+                id_user_card :  uuid.v4(),
+                id_user: id_user,
+                id_card: id_card
+            })
+
+            res.status(200).end()
+        } catch (e) {
+            console.log(e.errors)
+
+            res.status(500).send(e.errors);
+        }
+    });
 
 exports.initializeRoutes = () => router;
