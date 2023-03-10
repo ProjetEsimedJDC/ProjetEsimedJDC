@@ -132,8 +132,12 @@ router.post('/buyCard',async (req, res) => {
                 res.status(500).send('L\'utilisateur est introuvable');
             }
 
+
+            let coinsAfterBuy = user.coins - card.price
+            console.log(coinsAfterBuy)
+
             await User.update({
-                coins :  user.coins - card.price
+                coins :  coinsAfterBuy
             }, { where: { id_user } });
 
             await User_card.create({
