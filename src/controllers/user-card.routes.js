@@ -123,15 +123,14 @@ router.post('/buyCard',async (req, res) => {
             const card = await cardRepository.getCardById(id_card)
 
             if (card.price > user.coins){
-                res.status(500).send('L\'utilisateur n`\'a pas assez de pièces pour acheter cette carte');
+                return res.status(400).send('L\'utilisateur n`\'a pas assez de pièces pour acheter cette carte');
             }
 
             const foundUser = await User.findOne({ where: { id_user } });
 
             if (!foundUser) {
-                res.status(500).send('L\'utilisateur est introuvable');
+                return res.status(500).send('L\'utilisateur est introuvable');
             }
-
 
             let coinsAfterBuy = user.coins - card.price
             console.log(coinsAfterBuy)

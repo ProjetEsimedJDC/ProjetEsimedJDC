@@ -2,12 +2,24 @@ const uuid = require('uuid');
 const bcrypt = require('bcryptjs');
 const { Game } = require('../models/game.model.js');
 const gameHistoryRepository = require('../repostories/game-history-repository.js');
+const {Game_history} = require("../models/game_history.model");
 
-// exports.getUsers = async () => await User.findAll();
-//
-// exports.getUserByPseudo = async (pseudo) => {
-//   return await User.findOne({ where: { pseudo } });
-// };
+exports.getAllGame = async () => {
+  return await Game.findAll();
+};
+
+exports.getAllGameIdByUserId = async (id_user) => {
+  return await Game_history.findAll({ where: { id_user }, attributes: ['id_game'] });
+};
+
+exports.getGameByType = async (type) => {
+  console.log('type dans game repo : '+type)
+  try {
+    return await Game.findOne({ where: { type : type } });
+  }catch (e) {
+    console.log(e)
+  }
+};
 //
 // exports.getUserByEmail = async (email) => {
 //   return await User.findOne({ where: { email } });
@@ -25,11 +37,11 @@ const gameHistoryRepository = require('../repostories/game-history-repository.js
 exports.createGame = async (roomName, usersRoom) => {
   let id_game = uuid.v4()
 
-  console.log(roomName,usersRoom)
   try {
-    Game.create({
+    await Game.create({
       id_game: id_game,
       type: roomName,
+      is_end : false
     });
     console.log(`*-*-*-* La ${roomName} a été inséré en BDD`)
 

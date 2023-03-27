@@ -1,17 +1,13 @@
 const {DataTypes} = require('sequelize')
 const { sequelize } = require('../postgres.db')
 
-exports.Game_history = sequelize.define('Game_history', {
+exports.User_trophy = sequelize.define('User_trophy', {
     // Model attributes are defined here
-    id_game_history: {
+    id_user_trophy: {
         type: DataTypes.UUID,
         primaryKey : true,
         allowNull: false
     },
-    result: {
-        type: DataTypes.STRING(20),
-        allowNull: true
-    },
 }, {
-    tableName: 'Game_history',
+    tableName: 'User_trophy',
 });

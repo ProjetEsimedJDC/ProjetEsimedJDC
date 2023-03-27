@@ -4,21 +4,29 @@ const userRoutes = require('../controllers/user.routes');
 const authRoutes = require('../controllers/auth.route');
 const cardRoutes = require('../controllers/card.route');
 const userCardRoutes = require('../controllers/user-card.routes');
+const gameHistoryRoutes = require('../controllers/game-history.route');
+const gameRoutes = require('../controllers/games.route');
+const trophyRoutes = require('../controllers/trophy.route');
+const userTrophysRoutes = require('../controllers/user-trophy.route')
 
 const { sequelize } = require('../models/postgres.db')
+
 const { User } = require("../models/models/user.model");
 const { Card } = require("../models/models/card.model");
 const { User_card } = require("../models/models/user_card.model");
 const { Game } = require("../models/models/game.model");
 const { Game_history } = require("../models/models/game_history.model");
+const { Trophy } = require("../models/models/trophy.model");
+const { User_trophy } = require("../models/models/user_trophy.model");
 
 const gameRepository = require('../models/repostories/game-repository');
+const gameHistoryRepository = require('../models/repostories/game-history-repository');
 const cardRepository = require('../models/repostories/card-repository');
+const userRepository = require("../models/repostories/user-repository");
 
 
 const http = require('http');
 const socketIo = require('socket.io');
-const userRepository = require("../models/repostories/user-repository");
 const {set} = require("express/lib/application");
 
 class WebServer {
@@ -36,6 +44,9 @@ class WebServer {
 
     User.belongsToMany(Game, { through: Game_history, foreignKey: 'id_user' });
     Game.belongsToMany(User, { through: Game_history, foreignKey: 'id_game' });
+
+    User.belongsToMany(Trophy, { through: User_trophy, foreignKey: 'id_user' });
+    Trophy.belongsToMany(User, { through: User_trophy, foreignKey: 'id_trophy' });
 
     sequelize.sync();
     // sequelize.sync({ force: true });
@@ -60,15 +71,26 @@ class WebServer {
   }
 
   _initializeRoutes() {
-    this.app.use('/users', userRoutes.initializeRoutes());
     this.app.use('/auth', authRoutes.initializeRoutes());
+    this.app.use('/users', userRoutes.initializeRoutes());
     this.app.use('/cards', cardRoutes.initializeRoutes());
+    this.app.use('/games', gameRoutes.initializeRoutes());
+    this.app.use('/trophys', trophyRoutes.initializeRoutes());
+    this.app.use('/user-trophys', userTrophysRoutes.initializeRoutes());
     this.app.use('/user-cards', userCardRoutes.initializeRoutes());
+    this.app.use('/game-history', gameHistoryRoutes.initializeRoutes());
   }
 
-  _initializeWebSocket() {
+  async _initializeWebSocket() {
     const MAX_PLAYERS_PER_ROOM = 2;
-    let current_room = 1;
+    let current_room
+
+    try {
+      current_room = (await gameRepository.getAllGame()).length +1;
+    } catch (e) {
+      current_room = 1
+    }
+
     let ROOM = `room${current_room}`;
     const io = this.io
 
@@ -97,46 +119,48 @@ class WebServer {
           room.userCards.push(cards)
         }
 
+        await gameRepository.createGame(roomName, room.users)
         io.to(RoomFull).emit('game-created', room.users);
         io.to(RoomFull).emit('turn-player', room.users[0], gameData.rooms[ROOM].userCards[0], RoomFull)
       }
     }
-    function setResult (playerIndex, opponentIndex,RoomFull) {
+
+    function setResult(playerIndex, opponentIndex, RoomFull) {
       let actionTurnPlayer = gameData.rooms[RoomFull].turns[playerIndex][1]
       let pokemonTurnPlayer = gameData.rooms[RoomFull].turns[playerIndex][0]
       let opponentPokemonPlay = gameData.rooms[RoomFull].turns[opponentIndex][0]
       let opponentCards = gameData.rooms[RoomFull].userCards[opponentIndex]
       let opponentPokemonIndex;
 
-        opponentCards.forEach((opponentCard, index) => {
-          if (opponentCard.id_card === opponentPokemonPlay.id_card) {
-            opponentPokemonIndex = index
-          }
-        })
-
-        if (actionTurnPlayer === 'attack'){
-          opponentCards[opponentPokemonIndex].HP = opponentCards[opponentPokemonIndex].HP - pokemonTurnPlayer.attack
-
-          if (opponentCards[opponentPokemonIndex].HP <= 0){
-            gameData.rooms[RoomFull].results.push([true, pokemonTurnPlayer, opponentCards[opponentPokemonIndex], opponentIndex])
-            return true
-          }
-
-          gameData.rooms[RoomFull].results.push([false, pokemonTurnPlayer, opponentCards[opponentPokemonIndex], opponentIndex])
-          return false
+      opponentCards.forEach((opponentCard, index) => {
+        if (opponentCard.id_card === opponentPokemonPlay.id_card) {
+          opponentPokemonIndex = index
         }
+      })
+
+      if (actionTurnPlayer === 'attack') {
+        opponentCards[opponentPokemonIndex].HP = opponentCards[opponentPokemonIndex].HP - pokemonTurnPlayer.attack
+
+        if (opponentCards[opponentPokemonIndex].HP <= 0) {
+          gameData.rooms[RoomFull].results.push([true, pokemonTurnPlayer, opponentCards[opponentPokemonIndex], opponentIndex])
+          return true
+        }
+
+        gameData.rooms[RoomFull].results.push([false, pokemonTurnPlayer, opponentCards[opponentPokemonIndex], opponentIndex])
+        return false
+      }
       return 0
     }
 
     function determinePlayerPlayFirst(randomNumberBetweenSpeedPokemons, playerMaxSpeed, playerMinSpeed, pokemonMaxSpeed, pokemonMinSpeed) {
       if (randomNumberBetweenSpeedPokemons <= pokemonMaxSpeed) {
         let playerStart = playerMaxSpeed
-        let pourcent = Math.round(((pokemonMaxSpeed)/((pokemonMaxSpeed)+(pokemonMinSpeed)))*100)
+        let pourcent = Math.round(((pokemonMaxSpeed) / ((pokemonMaxSpeed) + (pokemonMinSpeed))) * 100)
 
         return [playerStart, pourcent]
       } else {
         let playerStart = playerMinSpeed
-        let pourcent = Math.round(((pokemonMinSpeed)/((pokemonMaxSpeed)+(pokemonMinSpeed)))*100)
+        let pourcent = Math.round(((pokemonMinSpeed) / ((pokemonMaxSpeed) + (pokemonMinSpeed))) * 100)
 
         return [playerStart, pourcent]
       }
@@ -146,7 +170,7 @@ class WebServer {
       let pokemonPlayer1Speed = gameData.rooms[RoomFull].turns[0][0].speed
       let pokemonPlayer2Speed = gameData.rooms[RoomFull].turns[1][0].speed
       let randomNumberBetweenSpeedPokemons = Math.floor(Math.random() * pokemonPlayer1Speed + pokemonPlayer2Speed - 1 + 1) + 1;
-      let playerMaxSpeed,playerMinSpeed, pokemonMaxSpeed, pokemonMinSpeed
+      let playerMaxSpeed, playerMinSpeed, pokemonMaxSpeed, pokemonMinSpeed
 
       if (pokemonPlayer1Speed > pokemonPlayer2Speed) {
         playerMaxSpeed = gameData.rooms[RoomFull].users[0]
@@ -164,7 +188,7 @@ class WebServer {
 
     }
 
-    function checkIfEndGame(RoomFull) {
+    async function checkIfEndGame(RoomFull) {
       let endgame = false
       let counter = 0
       gameData.rooms[RoomFull].userCards[0].forEach((user1Card, index) => {
@@ -175,7 +199,9 @@ class WebServer {
 
       if (counter === 3) {
         console.log(`${gameData.rooms[RoomFull].users[1].pseudo} a gagné`)
-        io.to(RoomFull).emit('end-game',gameData.rooms[RoomFull].users[1])
+        io.to(RoomFull).emit('end-game', gameData.rooms[RoomFull].users[1])
+        await gameHistoryRepository.setResult(RoomFull, gameData.rooms[RoomFull].users[1].id_user, gameData.rooms[RoomFull].users[0].id_user)
+
         endgame = true
       }
 
@@ -188,7 +214,9 @@ class WebServer {
 
       if (counter === 3) {
         console.log(`${gameData.rooms[RoomFull].users[0].pseudo} a gagné`)
-        io.to(RoomFull).emit('end-game',gameData.rooms[RoomFull].users[0])
+        io.to(RoomFull).emit('end-game', gameData.rooms[RoomFull].users[0])
+        await gameHistoryRepository.setResult(RoomFull, gameData.rooms[RoomFull].users[0].id_user, gameData.rooms[RoomFull].users[1].id_user)
+
         endgame = true
       }
       return endgame;
@@ -206,9 +234,10 @@ class WebServer {
         readyToStart: false
       };
     }
-    function playCard(RoomFull) {
-      if (gameData.rooms[RoomFull].turns.length < MAX_PLAYERS_PER_ROOM){
-        io.to(RoomFull).emit('turn-player', gameData.rooms[RoomFull].users[1], gameData.rooms[RoomFull].userCards[1],RoomFull)
+
+    async function playCard(RoomFull) {
+      if (gameData.rooms[RoomFull].turns.length < MAX_PLAYERS_PER_ROOM) {
+        io.to(RoomFull).emit('turn-player', gameData.rooms[RoomFull].users[1], gameData.rooms[RoomFull].userCards[1], RoomFull)
       } else {
         let playerFirstAndPourcent = CompareSpeedPlayerAndDetermineWhoPlayFirst(RoomFull);
         let firstPlayerIndex;
@@ -222,16 +251,16 @@ class WebServer {
 
         secondPlayerIndex = firstPlayerIndex === 1 ? 0 : 1;
 
-        let setResultFirstPlayer = setResult(firstPlayerIndex,secondPlayerIndex,RoomFull)
+        let setResultFirstPlayer = setResult(firstPlayerIndex, secondPlayerIndex, RoomFull)
 
-        if (!setResultFirstPlayer){
-          setResult(secondPlayerIndex, firstPlayerIndex,RoomFull)
+        if (!setResultFirstPlayer) {
+          setResult(secondPlayerIndex, firstPlayerIndex, RoomFull)
         }
-        io.to(RoomFull).emit('display round', gameData.rooms[RoomFull].users[0],gameData.rooms[RoomFull].users[1],playerFirstAndPourcent, gameData.rooms[RoomFull].turns[0],gameData.rooms[RoomFull].turns[1], gameData.rooms[RoomFull].results[0], gameData.rooms[RoomFull].results.length === 2 ? gameData.rooms[RoomFull].results[1] : null)
+        io.to(RoomFull).emit('display round', gameData.rooms[RoomFull].users[0], gameData.rooms[RoomFull].users[1], playerFirstAndPourcent, gameData.rooms[RoomFull].turns[0], gameData.rooms[RoomFull].turns[1], gameData.rooms[RoomFull].results[0], gameData.rooms[RoomFull].results.length === 2 ? gameData.rooms[RoomFull].results[1] : null)
 
-        let endgame = checkIfEndGame(RoomFull);
+        let endgame = await checkIfEndGame(RoomFull);
 
-        io.to(RoomFull).emit('update-card', gameData.rooms[RoomFull].users[0], gameData.rooms[RoomFull].userCards[0],gameData.rooms[RoomFull].users[1], gameData.rooms[RoomFull].userCards[1], RoomFull)
+        io.to(RoomFull).emit('update-card', gameData.rooms[RoomFull].users[0], gameData.rooms[RoomFull].userCards[0], gameData.rooms[RoomFull].users[1], gameData.rooms[RoomFull].userCards[1], RoomFull)
         if (endgame) {
 
         } else {
@@ -250,7 +279,7 @@ class WebServer {
         socket.join(ROOM);
 
         // Ajouter le joueur à la liste des utilisateurs de la partie
-        gameData.users.push(user);
+        gameData.users.push({user : user , socket : socket});
 
         // Ajouter le joueur à la salle
         gameData.rooms[ROOM].users.push(user);
@@ -270,21 +299,21 @@ class WebServer {
       });
 
       // Quand un joueur joue une carte, enregistrez-la et renvoyez les résultats
-      socket.on('player-action', async (indexPokemonFront, action, userId,RoomFull) => {
+      socket.on('player-action', async (indexPokemonFront, action, userId, RoomFull) => {
         console.log(RoomFull)
-        let indexPokemon = indexPokemonFront-1
+        let indexPokemon = indexPokemonFront - 1
         let playerIndex;
         gameData.rooms[RoomFull].users.forEach((user, index) => {
-            if (user.id_user === userId) {
-              playerIndex = index;
-            }
+          if (user.id_user === userId) {
+            playerIndex = index;
+          }
         });
 
         // Enregistrer la carte du joueur dans le tour actuel
         gameData.rooms[RoomFull].turns[playerIndex] = [gameData.rooms[RoomFull].userCards[playerIndex][indexPokemon], action];
 
         // Vérifiez si les deux joueurs ont joué leur tour, puis passez au tour suivant si c'est le cas
-        playCard(RoomFull);
+        await playCard(RoomFull);
       });
 
       socket.on('disconnect', () => {
