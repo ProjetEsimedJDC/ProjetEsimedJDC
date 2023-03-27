@@ -1,6 +1,7 @@
 const { Game_history } = require('../models/game_history.model.js');
 const gameRepository = require('../repostories/game-repository');
 const uuid = require("uuid");
+const userRepository = require("./user-repository");
 
 exports.getAllGameHistoryByGameId = async (id_game) => {
     return await Game_history.findAll({ where: { id_game }});
@@ -35,6 +36,8 @@ exports.setResult = async (room,userWinId, userLoseId ) => {
                 await gameHistory.update({
                     result : "win"
                 })
+                await userRepository.updateCoins(gameHistory.id_user, 50)
+
             } else {
                 await gameHistory.update({
                     result : "lose"

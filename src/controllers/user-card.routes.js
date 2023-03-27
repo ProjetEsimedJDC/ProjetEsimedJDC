@@ -133,7 +133,6 @@ router.post('/buyCard',async (req, res) => {
             }
 
             let coinsAfterBuy = user.coins - card.price
-            console.log(coinsAfterBuy)
 
             await User.update({
                 coins :  coinsAfterBuy

@@ -17,7 +17,11 @@ exports.createTrophy = async (fileContent, name, description) => {
     }
 };
 
-exports.getTrophyByName = async (id_trophy) => {
+exports.getTrophyByName = async (name) => {
+    return await Trophy.findOne({where: { name }})
+};
+
+exports.getTrophyById = async (id_trophy) => {
     return await Trophy.findOne({where: { id_trophy }})
 };
 

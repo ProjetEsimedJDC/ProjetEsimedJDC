@@ -9,6 +9,8 @@ const userTrophyRepository = require('../models/repostories/user-trophy-reposito
 const cardRepository = require("../models/repostories/card-repository");
 const userCardRepository = require("../models/repostories/user-card-repository");
 const trophyRepository = require("../models/repostories/trophy-repository");
+const uuid = require("uuid");
+const {User_trophy} = require("../models/models/user_trophy.model");
 
 
 router.get('/findAll/:id_user', async (req, res) => {
@@ -16,6 +18,26 @@ router.get('/findAll/:id_user', async (req, res) => {
     let userTrophies = await userTrophyRepository.findAllByIdUser(id_user)
 
     return res.status(200).send(userTrophies)
+});
+
+router.post('/create/:id_user/:name', async (req, res) => {
+    try {
+        let id_user = req.params.id_user
+        let name_trophy = req.params.name
+        let id_trophy = (await trophyRepository.getTrophyByName(name_trophy)).id_trophy
+
+        await userTrophyRepository.createUserTrophy({
+            id_user: id_user,
+            id_trophy: id_trophy,
+        });
+
+        await userRepository.updateCoins(id_user, 200)
+
+        res.status(200).end()
+    } catch (e) {
+        console.log(e)
+        return res.status(500).end()
+    }
 });
 
 router.get('/remaining-trophies/:id_user', async (req, res) => {
@@ -54,11 +76,12 @@ router.get('/remaining-trophies/:id_user', async (req, res) => {
 router.get('/seeder', async (req, res) => {
     try {
         let allTrophies = await trophyRepository.findAll()
+        let id_user = await userRepository.getIdUserByEmail('test@gmail.com')
         let i=1
         for (const Trophy of allTrophies) {
             if (i<5){
                 await userTrophyRepository.createUserTrophy({
-                    id_user: await userRepository.getIdUserByEmail('test@gmail.com'),
+                    id_user: id_user,
                     id_trophy: Trophy.id_trophy,
                 });
             }

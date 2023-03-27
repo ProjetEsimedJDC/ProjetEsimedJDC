@@ -10,7 +10,5 @@ exports.createUserCard = async (body) => {
     const userCard = body;
     userCard.id_user_card = uuid.v4();
 
-    console.log(userCard)
-
     await User_card.create(userCard);
 };

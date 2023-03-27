@@ -11,7 +11,6 @@ exports.getCardById = async (id_card) => {
 exports.getCardsUserByUserId = async (id_user) => {
     let user = await userRepository.getUserById(id_user)
 
-    // console.log(user);
     let userCard1 = await this.getCardById(user.id_card_1)
     let userCard2 = await this.getCardById(user.id_card_2)
     let userCard3 = await this.getCardById(user.id_card_3)

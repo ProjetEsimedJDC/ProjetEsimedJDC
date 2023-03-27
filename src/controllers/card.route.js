@@ -26,6 +26,10 @@ router.get('/seeder', async (req, res) => {
                         }
                     }
 
+                    if (apiEvol === null && apiPreEvol === null) {
+                        coins = 1000
+                    }
+
                     await cardRepository.createCard({
                         name: pokemon.name,
                         image : pokemon.image,

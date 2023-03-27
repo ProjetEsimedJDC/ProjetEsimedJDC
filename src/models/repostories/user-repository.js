@@ -60,7 +60,6 @@ exports.updateUserChoseCard1 = async (id_user,id_card_user ,id_card) => {
 
 exports.updateUser = async (id_user,data) => {
   const foundUser = await User.findOne({ where: { id_user } });
-  console.log(foundUser)
 
   if (!foundUser) {
     throw new Error('User not found');
@@ -74,6 +73,14 @@ exports.updateUser = async (id_user,data) => {
     email : data.email || foundUser.email,
     password : hash || foundUser.password,
   }, { where: { id_user } });
+};
+
+exports.updateCoins = async (id_user, coins) => {
+  let user = await User.findOne({where : {id_user}})
+
+  await user.update({
+    coins : user.coins + coins
+  })
 };
 
 // exports.updateUser = async (id_user, data) => {

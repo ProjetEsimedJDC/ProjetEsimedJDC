@@ -13,7 +13,6 @@ exports.getAllGameIdByUserId = async (id_user) => {
 };
 
 exports.getGameByType = async (type) => {
-  console.log('type dans game repo : '+type)
   try {
     return await Game.findOne({ where: { type : type } });
   }catch (e) {

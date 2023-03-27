@@ -65,7 +65,11 @@ async (req, res) => {
     if (!errors.isEmpty()) {
       return res.status(400).json({ errors: errors.array() });
     }
-    await userRepository.createUser(req.body);
+
+    let user = req.body
+    user.coins = 100
+
+    await userRepository.createUser(user);
 
     res.status(201).end()
   } catch (e) {

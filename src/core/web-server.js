@@ -78,7 +78,7 @@ class WebServer {
     this.app.use('/trophys', trophyRoutes.initializeRoutes());
     this.app.use('/user-trophys', userTrophysRoutes.initializeRoutes());
     this.app.use('/user-cards', userCardRoutes.initializeRoutes());
-    this.app.use('/game-history', gameHistoryRoutes.initializeRoutes());
+    this.app.use('/games-history', gameHistoryRoutes.initializeRoutes());
   }
 
   async _initializeWebSocket() {
@@ -198,7 +198,6 @@ class WebServer {
       })
 
       if (counter === 3) {
-        console.log(`${gameData.rooms[RoomFull].users[1].pseudo} a gagné`)
         io.to(RoomFull).emit('end-game', gameData.rooms[RoomFull].users[1])
         await gameHistoryRepository.setResult(RoomFull, gameData.rooms[RoomFull].users[1].id_user, gameData.rooms[RoomFull].users[0].id_user)
 
@@ -213,7 +212,6 @@ class WebServer {
       })
 
       if (counter === 3) {
-        console.log(`${gameData.rooms[RoomFull].users[0].pseudo} a gagné`)
         io.to(RoomFull).emit('end-game', gameData.rooms[RoomFull].users[0])
         await gameHistoryRepository.setResult(RoomFull, gameData.rooms[RoomFull].users[0].id_user, gameData.rooms[RoomFull].users[1].id_user)
 
@@ -300,7 +298,6 @@ class WebServer {
 
       // Quand un joueur joue une carte, enregistrez-la et renvoyez les résultats
       socket.on('player-action', async (indexPokemonFront, action, userId, RoomFull) => {
-        console.log(RoomFull)
         let indexPokemon = indexPokemonFront - 1
         let playerIndex;
         gameData.rooms[RoomFull].users.forEach((user, index) => {
