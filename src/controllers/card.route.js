@@ -57,7 +57,7 @@ router.get('/seeder', async (req, res) => {
 });
 
 router.get('/', async (req, res) => {
-    res.send(await cardRepository.getCard());
+    res.send(await cardRepository.getCards());
 });
 
 router.get('/:id', async (req, res) => {

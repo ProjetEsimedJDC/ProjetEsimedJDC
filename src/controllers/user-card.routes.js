@@ -13,7 +13,7 @@ const {User} = require("../models/models/user.model");
 
 router.get('/seeder', async (req, res) => {
     try {
-        let allCards = await cardRepository.getCard()
+        let allCards = await cardRepository.getCards()
         for (const Card of allCards) {
             await userCardRepository.createUserCard({
                 id_user: await userRepository.getIdUserByEmail('test@gmail.com'),
@@ -69,7 +69,7 @@ router.get('/load/without-ones-he-has/:id', async (req, res) => {
         }
 
         let array = []
-        let allCards = await cardRepository.getCard()
+        let allCards = await cardRepository.getCards()
 
         for (const Card of allCards) {
             if (!UserCards.includes(Card.id_card)){
