@@ -7,6 +7,10 @@ exports.getAllGameHistoryByGameId = async (id_game) => {
     return await Game_history.findAll({ where: { id_game }});
 };
 
+exports.getAllGameHistoryByUserId = async (id_user) => {
+    return await Game_history.findAll({ where: { id_user }});
+};
+
 exports.createGameHistory = async (id_game, usersRoom) => {
     try {
         for (const user of usersRoom) {

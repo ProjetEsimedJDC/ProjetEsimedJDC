@@ -23,6 +23,7 @@ const gameRepository = require('../models/repostories/game-repository');
 const gameHistoryRepository = require('../models/repostories/game-history-repository');
 const cardRepository = require('../models/repostories/card-repository');
 const userRepository = require("../models/repostories/user-repository");
+const userTrophyRepository = require("../models/repostories/user-trophy-repository");
 
 
 const http = require('http');
@@ -188,7 +189,7 @@ class WebServer {
 
     }
 
-    async function checkIfEndGame(RoomFull) {
+    async function checkIfEndGame(RoomFull,socket) {
       let endgame = false
       let counter = 0
       gameData.rooms[RoomFull].userCards[0].forEach((user1Card, index) => {
@@ -233,7 +234,7 @@ class WebServer {
       };
     }
 
-    async function playCard(RoomFull) {
+    async function playCard(RoomFull, socket) {
       if (gameData.rooms[RoomFull].turns.length < MAX_PLAYERS_PER_ROOM) {
         io.to(RoomFull).emit('turn-player', gameData.rooms[RoomFull].users[1], gameData.rooms[RoomFull].userCards[1], RoomFull)
       } else {
@@ -260,7 +261,7 @@ class WebServer {
 
         io.to(RoomFull).emit('update-card', gameData.rooms[RoomFull].users[0], gameData.rooms[RoomFull].userCards[0], gameData.rooms[RoomFull].users[1], gameData.rooms[RoomFull].userCards[1], RoomFull)
         if (endgame) {
-
+          //faire quelque chose
         } else {
           gameData.rooms[RoomFull].turns = [];
           gameData.rooms[RoomFull].results = [];
@@ -270,14 +271,102 @@ class WebServer {
       }
     }
 
+    async function isNewSucces(socket, historyGames) {
+      try {
+        let game_user = await gameRepository.getAllGameIdByUserId(socket.user.id_user)
+        let games_history_user = await gameHistoryRepository.getAllGameHistoryByUserId(socket.user.id_user)
+
+        if (game_user.length === 1) {
+          await userTrophyRepository.createUserTrophyIntoWebSocket(socket.user.id_user, 'hoenn-2')
+          localStorage.setItem("isNewSucces", 'true');
+        }
+
+        let i = 0
+        games_history_user.forEach(game_history_user => {
+          if (game_history_user.result === 'win') {
+            i++
+          }
+        })
+
+        let result_user_this_game = ''
+        historyGames.forEach(historyGame => {
+          if (historyGame.user_id = socket.user.user_id) {
+            result_user_this_game = historyGame.result
+          }
+        })
+
+
+        if (i === 1 && result_user_this_game === 'win') {
+          await userTrophyRepository.createUserTrophyIntoWebSocket(socket.user.id_user, 'hoenn-3')
+          localStorage.setItem("isNewSucces", 'true');
+        }
+
+        if (i === 10 && result_user_this_game === 'win') {
+          await userTrophyRepository.createUserTrophyIntoWebSocket(socket.user.id_user, 'hoenn-4')
+          localStorage.setItem("isNewSucces", 'true');
+        }
+
+        if (i === 50 && result_user_this_game === 'win') {
+          await userTrophyRepository.createUserTrophyIntoWebSocket(socket.user.id_user, 'hoenn-6')
+          localStorage.setItem("isNewSucces", 'true');
+        }
+
+        if (i === 50 && result_user_this_game === 'win') {
+          await userTrophyRepository.createUserTrophyIntoWebSocket(socket.user.id_user, 'hoenn-8')
+          localStorage.setItem("isNewSucces", 'true');
+        }
+      } catch (e) {
+        console.log(e)
+      }
+    }
+
+    async function checkIfGameEndElseSetAbandon(socket) {
+      try {
+        let game = await gameRepository.getGameByType(socket.room)
+
+        let historyGames = await gameHistoryRepository.getGameHistoryByGameId(game.id_game)
+
+        for (const historyGame of historyGames) {
+          let end_game = historyGame.result ? true : false
+
+          if (!end_game) {
+            if (historyGame.id_user !== socket.user.id_user) {
+              historyGame.update({
+                result: 'win'
+              })
+              let user = await userRepository.getUserById(historyGame.id_user)
+              io.to(socket.room).emit('end-game', user)
+              userRepository.updateCoins(historyGame.id_user, 50)
+            } else {
+              historyGame.update({
+                result: 'abandon'
+              })
+              // userRepository.updateCoins(historyGame.id_user, -50)
+            }
+          }
+        }
+
+        game.update({
+          is_end: true
+        })
+        return historyGames;
+      } catch (e) {
+        return ''
+      }
+
+    }
+
     io.on('connection', (socket) => {
       console.log(`***** Un joueur s'est connecté`);
+
       // Quand un joueur rejoint une salle, ajoutez-le à la liste des joueurs de la salle
       socket.on('join-room', async (user) => {
         socket.join(ROOM);
 
         // Ajouter le joueur à la liste des utilisateurs de la partie
         gameData.users.push({user : user , socket : socket});
+        socket.user = user
+        socket.room = ROOM
 
         // Ajouter le joueur à la salle
         gameData.rooms[ROOM].users.push(user);
@@ -313,8 +402,12 @@ class WebServer {
         await playCard(RoomFull);
       });
 
-      socket.on('disconnect', () => {
+      socket.on('disconnect', async () => {
         console.log(`***** Un joueur s'est déconnecté`);
+        let historyGames = await checkIfGameEndElseSetAbandon(socket);
+
+        await isNewSucces(socket, historyGames);
+
       });
     });
   }
