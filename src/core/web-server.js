@@ -102,11 +102,32 @@ class WebServer {
           playerCount: 0,
           users: [], //2 joueurs
           userCards: [], //Cartes des 2 joueurs
-          turns: [], // [obj: pokemon joué, string: action(attack ou defense)] x2
+          turns: [], // [obj: pokemon joué, string: action(attack ou defense), string : type_attaque, comment] x2
           results: [], // [bool: pokemon kill, obj: pokemon play, obj: pokemon adverse, joueur en face] x2
           readyToStart: false
         }
       }
+    };
+
+    const typeChart = {
+      normal: { normal: 1, combat: 1, vol: 1, poison: 1, sol: 1, roche: 0.5, insecte: 1, spectre: 0, acier: 0.5, feu: 1, eau: 1, plante: 1, electrik: 1, psy: 1, glace: 1, dragon: 1, tenebres: 1, fee: 1 },
+      combat: { normal: 1, combat: 1, vol: 0.5, poison: 0.5, sol: 1, roche: 2, insecte: 0.5, spectre: 0, acier: 2, feu: 1, eau: 1, plante: 1, electrik: 1, psy: 2, glace: 1, dragon: 1, tenebres: 0.5, fee: 2 },
+      vol: { normal: 1, combat: 2, vol: 1, poison: 1, sol: 0, roche: 0.5, insecte: 2, spectre: 1, acier: 0.5, feu: 1, eau: 1, plante: 2, electrik: 0.5, psy: 1, glace: 2, dragon: 1, tenebres: 1, fee: 1 },
+      poison: { normal: 1, combat: 1, vol: 1, poison: 0.5, sol: 2, roche: 0.5, insecte: 1, spectre: 0.5, acier: 0, feu: 1, eau: 1, plante: 2, electrik: 1, psy: 1, glace: 1, dragon: 1, tenebres: 1, fee: 2 },
+      sol: { normal: 1, combat: 1, vol: 1, poison: 0.5, sol: 1, roche: 2, insecte: 1, spectre: 1, acier: 2, feu: 1, eau: 2, plante: 0.5, electrik: 2, psy: 1, glace: 1, dragon: 1, tenebres: 1, fee: 1 },
+      roche: { normal: 1, combat: 0.5, vol: 2, poison: 1, sol: 0.5, roche: 1, insecte: 2, spectre: 1, acier: 0.5, feu: 2, eau: 1, plante: 1, electrik: 1, psy: 1, glace: 2, dragon: 1, tenebres: 1, fee: 1 },
+      insecte: { normal: 1, combat: 0.5, vol: 0.5, poison: 2, sol: 1, roche: 1, insecte: 1, spectre: 0.5, acier: 0.5, feu: 0.5, eau: 1, plante: 2, electrik: 1, psy: 2, glace: 1, dragon: 1, tenebres: 2, fee: 0.5 },
+      spectre: { normal: 0, combat: 1, vol: 1, poison: 1, sol: 1, roche: 1, insecte: 1, spectre: 2, acier: 0.5, feu: 1, eau: 1, plante: 1, electrik: 1, psy: 1, glace: 1, dragon: 1, tenebres: 0.5, fee: 1 },
+      acier: { normal: 0.5, combat: 1, vol: 1, poison: 1, sol: 1, roche: 2, insecte: 1, spectre: 1, acier: 0.5, feu: 0.5, eau: 0.5, plante: 1, electrik: 0.5, psy: 1, glace: 2, dragon: 0.5, tenebres: 1, fee: 2 },
+      feu: { normal: 1, combat: 1, vol: 1, poison: 1, sol: 1, roche: 0.5, insecte: 2, spectre: 1, acier: 2, feu: 0.5, eau: 0.5, plante: 2, electrik: 1, psy: 1, glace: 2, dragon: 0.5, tenebres: 1, fee: 1 },
+      eau: { normal: 1, combat: 1, vol: 1, poison: 1, sol: 2, roche: 2, insecte: 1, spectre: 1, acier: 1, feu: 2, eau: 0.5, plante: 0.5, electrik: 1, psy: 1, glace: 1, dragon: 0.5, tenebres: 1, fee: 1 },
+      plante: { normal: 1, combat: 1, vol: 2, poison: 0.5, sol: 2, roche: 1, insecte: 0.5, spectre: 1, acier: 0.5, feu: 0.5, eau: 2, plante: 0.5, electrik: 1, psy: 1, glace: 1, dragon: 0.5, tenebres: 1, fee: 1 },
+      electrik: { normal: 1, combat: 1, vol: 2, poison: 1, sol: 0, roche: 1, insecte: 1, spectre: 1, acier: 0.5, feu: 1, eau: 2, plante: 0.5, electrik: 0.5, psy: 1, glace: 1, dragon: 0.5, tenebres: 1, fee: 1 },
+      psy: { normal: 1, combat: 0.5, vol: 1, poison: 2, sol: 2, roche: 1, insecte: 1, spectre: 1, acier: 0.5, feu: 1, eau: 1, plante: 1, electrik: 1, psy: 0.5, glace: 1, dragon: 1, tenebres: 2, fee: 1 },
+      glace: { normal: 1, combat: 2, vol: 1, poison: 1, sol: 2, roche: 1, insecte: 1, spectre: 1, acier: 0.5, feu: 0.5, eau: 0.5, plante: 2, electrik: 1, psy: 1, glace: 0.5, dragon: 2, tenebres: 1, fee: 1 },
+      dragon: { normal: 1, combat: 1, vol: 1, poison: 1, sol: 1, roche: 1, insecte: 1, spectre: 1, acier: 0.5, feu: 1, eau: 1, plante: 1, electrik: 1, psy: 1, glace: 1, dragon: 2, tenebres: 1, fee: 2 },
+      tenebres: { normal: 1, combat: 2, vol: 1, poison: 1, sol: 1, roche: 1, insecte: 1, spectre: 2, acier: 1, feu: 1, eau: 1, plante: 1, electrik: 1, psy: 0, glace: 1, dragon: 1, tenebres: 0.5, fee: 0.5 },
+      fee: { normal: 1, combat: 0.5, vol: 1, poison: 0.5, sol: 1, roche: 1, insecte: 2, spectre: 1, acier: 0.5, feu: 1, eau: 1, plante: 1, electrik: 1, psy: 1, glace: 1, dragon: 2, tenebres: 2, fee: 1 },
     };
 
     async function checkIfReadyToStart(roomName) {
@@ -128,6 +149,7 @@ class WebServer {
 
     function setResult(playerIndex, opponentIndex, RoomFull) {
       let actionTurnPlayer = gameData.rooms[RoomFull].turns[playerIndex][1]
+      let actionTypePlayer =  gameData.rooms[RoomFull].turns[playerIndex][2]
       let pokemonTurnPlayer = gameData.rooms[RoomFull].turns[playerIndex][0]
       let opponentPokemonPlay = gameData.rooms[RoomFull].turns[opponentIndex][0]
       let opponentCards = gameData.rooms[RoomFull].userCards[opponentIndex]
@@ -140,14 +162,41 @@ class WebServer {
       })
 
       if (actionTurnPlayer === 'attack') {
-        opponentCards[opponentPokemonIndex].HP = opponentCards[opponentPokemonIndex].HP - pokemonTurnPlayer.attack
+        let type_opponent_card = opponentCards[opponentPokemonIndex]
+        let caluculate_domage_per_type = typeChart[actionTypePlayer][type_opponent_card.type_1]
+
+        if (type_opponent_card.type_2 !== null){
+          caluculate_domage_per_type = caluculate_domage_per_type*typeChart[actionTypePlayer][type_opponent_card.type_2]
+        }
+
+        let comment = ''
+        if (caluculate_domage_per_type == 0) {
+          comment = "ce n'est pas du tout efficace"
+        }
+        if (caluculate_domage_per_type == 0.5) {
+          comment = "ce n'est pas très efficace"
+        }
+        if (caluculate_domage_per_type == 1) {
+          comment = ""
+        }
+        if (caluculate_domage_per_type == 2) {
+          comment = "c'est efficace"
+        }
+        if (caluculate_domage_per_type == 4) {
+          comment = "c'est super efficace"
+        }
+        console.log('============================================================ '+ comment)
+
+        opponentCards[opponentPokemonIndex].HP = opponentCards[opponentPokemonIndex].HP - (pokemonTurnPlayer.attack*caluculate_domage_per_type)
 
         if (opponentCards[opponentPokemonIndex].HP <= 0) {
           gameData.rooms[RoomFull].results.push([true, pokemonTurnPlayer, opponentCards[opponentPokemonIndex], opponentIndex])
+          gameData.rooms[RoomFull].turns[playerIndex].push(comment)
           return true
         }
 
         gameData.rooms[RoomFull].results.push([false, pokemonTurnPlayer, opponentCards[opponentPokemonIndex], opponentIndex])
+        gameData.rooms[RoomFull].turns[playerIndex].push(comment)
         return false
       }
       return 0
@@ -170,7 +219,7 @@ class WebServer {
     function CompareSpeedPlayerAndDetermineWhoPlayFirst(RoomFull) {
       let pokemonPlayer1Speed = gameData.rooms[RoomFull].turns[0][0].speed
       let pokemonPlayer2Speed = gameData.rooms[RoomFull].turns[1][0].speed
-      let randomNumberBetweenSpeedPokemons = Math.floor(Math.random() * pokemonPlayer1Speed + pokemonPlayer2Speed - 1 + 1) + 1;
+      let randomNumberBetweenSpeedPokemons = Math.floor(Math.random() * (pokemonPlayer1Speed + pokemonPlayer2Speed) - 1 + 1) + 1;
       let playerMaxSpeed, playerMinSpeed, pokemonMaxSpeed, pokemonMinSpeed
 
       if (pokemonPlayer1Speed > pokemonPlayer2Speed) {
@@ -184,6 +233,7 @@ class WebServer {
         pokemonMaxSpeed = pokemonPlayer2Speed
         pokemonMinSpeed = pokemonPlayer1Speed
       }
+
 
       return determinePlayerPlayFirst(randomNumberBetweenSpeedPokemons, playerMaxSpeed, playerMinSpeed, pokemonMaxSpeed, pokemonMinSpeed);
 
@@ -386,7 +436,7 @@ class WebServer {
       });
 
       // Quand un joueur joue une carte, enregistrez-la et renvoyez les résultats
-      socket.on('player-action', async (indexPokemonFront, action, userId, RoomFull) => {
+      socket.on('player-action', async (indexPokemonFront, action, userId, RoomFull,type_action) => {
         let indexPokemon = indexPokemonFront - 1
         let playerIndex;
         gameData.rooms[RoomFull].users.forEach((user, index) => {
@@ -396,7 +446,16 @@ class WebServer {
         });
 
         // Enregistrer la carte du joueur dans le tour actuel
-        gameData.rooms[RoomFull].turns[playerIndex] = [gameData.rooms[RoomFull].userCards[playerIndex][indexPokemon], action];
+        if (type_action === '0'){
+          type_action = 'normal'
+        }
+        if (type_action === '1'){
+          type_action = gameData.rooms[RoomFull].userCards[playerIndex][indexPokemon].type_1
+        }
+        if (type_action === '2'){
+          type_action = gameData.rooms[RoomFull].userCards[playerIndex][indexPokemon].type_2
+        }
+        gameData.rooms[RoomFull].turns[playerIndex] = [gameData.rooms[RoomFull].userCards[playerIndex][indexPokemon], action, type_action];
 
         // Vérifiez si les deux joueurs ont joué leur tour, puis passez au tour suivant si c'est le cas
         await playCard(RoomFull);
