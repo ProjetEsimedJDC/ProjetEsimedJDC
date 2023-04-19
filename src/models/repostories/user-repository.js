@@ -59,21 +59,18 @@ exports.updateUserChoseCard1 = async (id_user,id_card_user ,id_card) => {
 };
 
 exports.updateUser = async (id_user,data) => {
-  const foundUser = await User.findOne({ where: { id_user } });
-
-  if (!foundUser) {
-    throw new Error('User not found');
-  }
-
   let salt = bcrypt.genSaltSync(10);
   let hash = bcrypt.hashSync(data.password, salt);
 
   await User.update({
-    pseudo :  data.pseudo || foundUser.pseudo,
-    email : data.email || foundUser.email,
-    password : hash || foundUser.password,
-  }, { where: { id_user } });
+    pseudo: data.pseudo || foundUser.pseudo,
+    email: data.email || foundUser.email,
+    password: hash,
+  }, {where: {id_user}})
+
+  console.log("test")
 };
+
 
 exports.updateCoins = async (id_user, coins) => {
   let user = await User.findOne({where : {id_user}})

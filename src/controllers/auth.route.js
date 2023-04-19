@@ -7,8 +7,6 @@ const jwt = require('jsonwebtoken');
 require('dotenv').config()
 
 const { body, validationResult } = require('express-validator');
-
-
 router.post('/login',
     body('email').isEmail(),
     body('password').isLength({ min: 6 }),
@@ -46,5 +44,20 @@ router.post('/login',
         return res.sendStatus(401)
     }
 });
+
+router.get('/refresh/:id_user', async (req, res) => {
+        try{
+            const id_user = req.params.id_user
+
+            const token = jwt.sign({id_user: id_user},
+                                            process.env.SECRET_KEY ,
+                                    { expiresIn: process.env.JWT_EXPIRES_IN }
+                            );
+
+            res.status(200).send({token})
+        } catch (e) {
+            return res.sendStatus(500)
+        }
+    });
 
 exports.initializeRoutes = () => router;

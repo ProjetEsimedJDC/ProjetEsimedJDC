@@ -17,7 +17,16 @@ router.get('/findAll/:id_user', async (req, res) => {
     let id_user = req.params.id_user
     let userTrophies = await userTrophyRepository.findAllByIdUser(id_user)
 
-    return res.status(200).send(userTrophies)
+    let array = []
+
+    for (const userTrophy of userTrophies) {
+        let trophy = await trophyRepository.getTrophyById(userTrophy.id_trophy)
+        trophy.svg = trophy.svg.toString("utf8")
+
+        array.push(trophy)
+    }
+
+    return res.status(200).send(array)
 });
 
 router.post('/create/:id_user/:name', async (req, res) => {

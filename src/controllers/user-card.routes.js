@@ -37,9 +37,9 @@ router.get('/seeder', async (req, res) => {
     }
 });
 
-router.get('/load/:id', async (req, res) => {
+router.get('/load/:id_user', async (req, res) => {
     try {
-        let id_user = req.params.id
+        let id_user = req.params.id_user
         const user_cards = await userCardRepository.getAllUserCardById(id_user)
 
         if (!user_cards) {
@@ -52,7 +52,7 @@ router.get('/load/:id', async (req, res) => {
             array.push(await cardRepository.getCardById(user_card.id_card));
         }
 
-          res.send(array);
+          res.status(200).send(array);
     } catch (e) {
         res.status(500).send(e);
     }

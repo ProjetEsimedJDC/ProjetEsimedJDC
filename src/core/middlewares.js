@@ -28,21 +28,21 @@ const initLoggerMiddlware = (app) => {
   });
 };
 
-// const tokenMiddlware = (app) => {
-//   app.use(
-//     jwt({
-//       secret: process.env.SECRET_KEY,
-//       algorithms: ["HS256"],
-//     }).unless({ path: [{ url: "/users", methods: ["POST"] },{ url: "/auth/login", methods: ["POST"] }] })
-//   );
-// }
+const tokenMiddlware = (app) => {
+  app.use(
+    jwt({
+      secret: process.env.SECRET_KEY,
+      algorithms: ["HS256"],
+    }).unless({ path: [{ url: "/users", methods: ["POST"] },{ url: "/auth/login", methods: ["POST"] }] })
+  );
+}
 
 exports.initializeConfigMiddlewares = (app) => {
   initJsonHandlerMiddlware(app);
   initLoggerMiddlware(app);
   staticMiddlware(app);
   corsMiddlware(app);
-  // tokenMiddlware(app);
+  tokenMiddlware(app);
 }
 
 exports.initializeErrorMiddlwares = (app) => {

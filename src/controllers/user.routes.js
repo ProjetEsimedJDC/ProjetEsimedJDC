@@ -4,6 +4,7 @@ const userRepository = require('../models/repostories/user-repository');
 const { User } = require("../models/models/user.model");
 const { body, validationResult } = require('express-validator');
 const bcrypt = require('bcryptjs');
+const {logger} = require("sequelize/lib/utils/logger");
 const guard = require('express-jwt-permissions')({
   requestProperty: 'auth',
 });
@@ -81,9 +82,10 @@ async (req, res) => {
 
 router.put('/update/:id_user', async (req, res) => {
   try {
-    await userRepository.updateUser(req.params.id_user,req.body);
+    let body = req.body
+    let user_update = await userRepository.updateUser(req.params.id_user,body);
 
-    res.status(200).send('Updated');
+    return res.status(200).end();
   } catch (e) {
     res.status(500).send(e.message);
   }
