@@ -33,4 +33,4 @@ relationships:
 
 web:
   commands:
-    start: "npm run start:dev"
+    start: "node index.js"
