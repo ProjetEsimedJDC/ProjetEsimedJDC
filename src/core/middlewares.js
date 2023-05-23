@@ -33,7 +33,7 @@ const tokenMiddlware = (app) => {
     jwt({
       secret: process.env.SECRET_KEY,
       algorithms: ["HS256"],
-    }).unless({ path: [{ url: "/users", methods: ["POST"] },{ url: "/auth/login", methods: ["POST"] }] })
+    }).unless({ path: [{ url: "/users", methods: ["POST"] },{ url: "/auth/login", methods: ["POST"] }, { url : "/cards/seeder", methods: ["GET"] }, { url : "/trophys/seeder", methods: ["GET"] } ]})
   );
 }
 
