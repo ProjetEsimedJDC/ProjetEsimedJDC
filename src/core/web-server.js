@@ -32,7 +32,7 @@ const {set} = require("express/lib/application");
 
 class WebServer {
   app = undefined;
-  port = process.env.SERVER_PORT;
+  port = process.env.PORT;
   server = undefined;
   io = undefined;
 
