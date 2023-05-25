@@ -193,11 +193,13 @@ class WebServer {
           gameData.rooms[RoomFull].results.push([true, pokemonTurnPlayer, opponentCards[opponentPokemonIndex], opponentIndex])
           gameData.rooms[RoomFull].turns[playerIndex].push(comment)
           return true
+        } else {
+          gameData.rooms[RoomFull].results.push([false, pokemonTurnPlayer, opponentCards[opponentPokemonIndex], opponentIndex])
+          gameData.rooms[RoomFull].turns[playerIndex].push(comment)
+          return false
         }
 
-        gameData.rooms[RoomFull].results.push([false, pokemonTurnPlayer, opponentCards[opponentPokemonIndex], opponentIndex])
-        gameData.rooms[RoomFull].turns[playerIndex].push(comment)
-        return false
+
       }
       return 0
     }
@@ -381,12 +383,12 @@ class WebServer {
 
           if (!end_game) {
             if (historyGame.id_user !== socket.user.id_user) {
-              historyGame.update({
+              await historyGame.update({
                 result: 'win'
               })
               let user = await userRepository.getUserById(historyGame.id_user)
               io.to(socket.room).emit('end-game', user)
-              userRepository.updateCoins(historyGame.id_user, 50)
+              await userRepository.updateCoins(historyGame.id_user, 50)
             } else {
               historyGame.update({
                 result: 'abandon'
