@@ -70,7 +70,17 @@ async (req, res) => {
     let user = req.body
     user.coins = 100
 
-    await userRepository.createUser(user);
+    let user_create = await userRepository.createUser(user);
+
+    if (user_create === 1){
+      return res.status(400).send("Ce pseudo est déjà pris");
+    }
+    if (user_create === 2){
+      return res.status(401).send("Cet email est déjà pris");
+    }
+    if (user_create === 3){
+      return res.status(403).send("L'email et le pseudo sont déjà pris");
+    }
 
     res.status(201).end()
   } catch (e) {
@@ -83,7 +93,17 @@ async (req, res) => {
 router.put('/update/:id_user', async (req, res) => {
   try {
     let body = req.body
+    console.log(req.params.id_user)
     let user_update = await userRepository.updateUser(req.params.id_user,body);
+    if (user_update === 1){
+      return res.status(400).send("Ce pseudo est déjà pris");
+    }
+    if (user_update === 2){
+      return res.status(401).send("Cet email est déjà pris");
+    }
+    if (user_update === 3){
+      return res.status(403).send("L'email et le pseudo sont déjà pris");
+    }
 
     return res.status(200).end();
   } catch (e) {

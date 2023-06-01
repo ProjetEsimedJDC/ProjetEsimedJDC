@@ -22,6 +22,22 @@ exports.getIdUserByEmail = async (email) => {
 };
 
 exports.createUser = async (body) => {
+  let number_unique = 0
+
+    let is_unique_pseudo = await this.getUserByPseudo(body.pseudo)
+    if (is_unique_pseudo){
+      number_unique += 1
+    }
+
+    let is_unique_email = await this.getUserByEmail(body.email)
+    if (is_unique_email) {
+      number_unique += 2
+    }
+
+    if (number_unique !== 0) {
+      return number_unique
+    }
+
   let salt = bcrypt.genSaltSync(10);
   let hash = bcrypt.hashSync(body.password, salt);
 
@@ -31,6 +47,8 @@ exports.createUser = async (body) => {
   user.password = hash;
 
   await User.create(user);
+
+  return 4;
 };
 
 exports.updateUserChoseCard1 = async (id_user,id_card_user ,id_card) => {
@@ -59,16 +77,48 @@ exports.updateUserChoseCard1 = async (id_user,id_card_user ,id_card) => {
 };
 
 exports.updateUser = async (id_user,data) => {
+  let user_info = this.getUserById(id_user)
+  let email = data.email
+  let pseudo = data.pseudo
+  let users_same_email = User.findAll({where : {email}})
+  let users_same_pseudo =  User.findAll({where : {pseudo}})
+  let number_unique = 0
+
+  if((await users_same_email).length !== 0){
+    if ((await users_same_email).length === 1) {
+      if ((await users_same_email)[0].email !== (await user_info).email){
+        number_unique += 2
+      }
+    } else {
+      number_unique += 2
+    }
+  }
+
+  if((await users_same_pseudo).length !== 0){
+    if ((await users_same_pseudo).length === 1) {
+      if ((await users_same_pseudo)[0].pseudo !== (await user_info).pseudo){
+        number_unique += 1
+      }
+    } else {
+      number_unique += 1
+    }
+  }
+
+  if (number_unique !== 0){
+    return number_unique
+  }
+
+
   let salt = bcrypt.genSaltSync(10);
   let hash = bcrypt.hashSync(data.password, salt);
 
   await User.update({
-    pseudo: data.pseudo || foundUser.pseudo,
-    email: data.email || foundUser.email,
+    pseudo: data.pseudo || user_info.pseudo,
+    email: data.email || user_info.email,
     password: hash,
   }, {where: {id_user}})
 
-  console.log("test")
+  return 4
 };
 
 
