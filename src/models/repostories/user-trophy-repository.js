@@ -18,6 +18,8 @@ exports.createUserTrophyIntoWebSocket = async (id_user, name_trophy) => {
     userTrophy.id_trophy = (await trophyRepository.getTrophyByName(name_trophy)).id_trophy;
 
     await User_trophy.create(userTrophy)
+
+    await userRepository.updateCoins(id_user, 200)
 };
 
 exports.findAllByIdUser = async (id_user) => {

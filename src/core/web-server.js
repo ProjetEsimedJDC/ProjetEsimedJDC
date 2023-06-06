@@ -185,7 +185,6 @@ class WebServer {
         if (caluculate_domage_per_type == 4) {
           comment = "c'est super efficace"
         }
-        console.log('============================================================ '+ comment)
 
         opponentCards[opponentPokemonIndex].HP = opponentCards[opponentPokemonIndex].HP - (pokemonTurnPlayer.attack*caluculate_domage_per_type)
 
@@ -251,7 +250,7 @@ class WebServer {
       })
 
       if (counter === 3) {
-        io.to(RoomFull).emit('end-game', gameData.rooms[RoomFull].users[1])
+        io.to(RoomFull).emit('end-game', gameData.rooms[RoomFull].users[1], RoomFull)
         await gameHistoryRepository.setResult(RoomFull, gameData.rooms[RoomFull].users[1].id_user, gameData.rooms[RoomFull].users[0].id_user)
 
         endgame = true
@@ -309,7 +308,7 @@ class WebServer {
         }
         io.to(RoomFull).emit('display round', gameData.rooms[RoomFull].users[0], gameData.rooms[RoomFull].users[1], playerFirstAndPourcent, gameData.rooms[RoomFull].turns[0], gameData.rooms[RoomFull].turns[1], gameData.rooms[RoomFull].results[0], gameData.rooms[RoomFull].results.length === 2 ? gameData.rooms[RoomFull].results[1] : null)
 
-        let endgame = await checkIfEndGame(RoomFull);
+        let endgame = await checkIfEndGame(RoomFull,socket);
 
         io.to(RoomFull).emit('update-card', gameData.rooms[RoomFull].users[0], gameData.rooms[RoomFull].userCards[0], gameData.rooms[RoomFull].users[1], gameData.rooms[RoomFull].userCards[1], RoomFull)
         if (endgame) {
@@ -324,58 +323,60 @@ class WebServer {
     }
 
     async function isNewSucces(socket, historyGames) {
-      try {
+      let user_id = socket.user.id_user
 
-        let game_user = await gameRepository.getAllGameIdByUserId(socket.user.id_user)
-        let games_history_user = await gameHistoryRepository.getAllGameHistoryByUserId(socket.user.id_user)
+      let game_user = await gameRepository.getAllGameIdByUserId(user_id)
+      let games_history_user = await gameHistoryRepository.getAllGameHistoryByUserId(user_id)
 
-        if (game_user.length === 1) {
-          await userTrophyRepository.createUserTrophyIntoWebSocket(socket.user.id_user, 'hoenn-2')
-          localStorage.setItem("isNewSucces", 'true');
+      if (game_user.length === 1) {
+        await userTrophyRepository.createUserTrophyIntoWebSocket(user_id, 'hoenn-2')
+        socket.emit('new-success')
+      }
+
+      let i = 0
+      games_history_user.forEach(game_history_user => {
+        if (game_history_user.result === 'win') {
+          i++
         }
+      })
 
-        let i = 0
-        games_history_user.forEach(game_history_user => {
-          if (game_history_user.result === 'win') {
-            i++
-          }
-        })
-
-        let result_user_this_game = ''
-        historyGames.forEach(historyGame => {
-          if (historyGame.user_id = socket.user.user_id) {
-            result_user_this_game = historyGame.result
-          }
-        })
-
-
-        if (i === 1 && result_user_this_game === 'win') {
-          await userTrophyRepository.createUserTrophyIntoWebSocket(socket.user.id_user, 'hoenn-3')
-          localStorage.setItem("isNewSucces", 'true');
+      let result_user_this_game = ''
+      historyGames.forEach(historyGame => {
+        if (historyGame.id_user === user_id) {
+          result_user_this_game = historyGame.result
         }
+      })
 
-        if (i === 10 && result_user_this_game === 'win') {
-          await userTrophyRepository.createUserTrophyIntoWebSocket(socket.user.id_user, 'hoenn-4')
-          localStorage.setItem("isNewSucces", 'true');
-        }
+      console.log('///////////////////////////////////////////:')
+      console.log(historyGames,result_user_this_game, i)
 
-        if (i === 50 && result_user_this_game === 'win') {
-          await userTrophyRepository.createUserTrophyIntoWebSocket(socket.user.id_user, 'hoenn-6')
-          localStorage.setItem("isNewSucces", 'true');
-        }
 
-        if (i === 50 && result_user_this_game === 'win') {
-          await userTrophyRepository.createUserTrophyIntoWebSocket(socket.user.id_user, 'hoenn-8')
-          localStorage.setItem("isNewSucces", 'true');
-        }
-      } catch (e) {
-        console.log(e)
+      if (i === 1 && result_user_this_game === 'win') {
+        await userTrophyRepository.createUserTrophyIntoWebSocket(user_id, 'hoenn-3')
+        socket.emit('new-success')
+      }
+
+      if (i === 10 && result_user_this_game === 'win') {
+        await userTrophyRepository.createUserTrophyIntoWebSocket(user_id, 'hoenn-4')
+        socket.emit('new-success')
+      }
+
+      if (i === 50 && result_user_this_game === 'win') {
+        await userTrophyRepository.createUserTrophyIntoWebSocket(user_id, 'hoenn-6')
+        socket.emit('new-success')
+      }
+
+      if (i === 50 && result_user_this_game === 'win') {
+        await userTrophyRepository.createUserTrophyIntoWebSocket(user_id, 'hoenn-8')
+        socket.emit('new-success')
       }
     }
 
     async function checkIfGameEndElseSetAbandon(socket) {
-      try {
-        let game = await gameRepository.getGameByType(socket.room)
+        let room = socket.room
+        let id_user =  socket.user.id_user
+
+        let game = await gameRepository.getGameByType(room)
 
         let historyGames = await gameHistoryRepository.getGameHistoryByGameId(game.id_game)
 
@@ -383,12 +384,12 @@ class WebServer {
           let end_game = historyGame.result ? true : false
 
           if (!end_game) {
-            if (historyGame.id_user !== socket.user.id_user) {
+            if (historyGame.id_user !== id_user) {
               await historyGame.update({
                 result: 'win'
               })
               let user = await userRepository.getUserById(historyGame.id_user)
-              io.to(socket.room).emit('end-game', user)
+              io.to(room).emit('end-game', user)
               await userRepository.updateCoins(historyGame.id_user, 50)
             } else {
               historyGame.update({
@@ -403,23 +404,6 @@ class WebServer {
           is_end: true
         })
         return historyGames;
-      } catch (e) {
-        return ''
-      }
-
-    }
-
-    async function disconnectClientFromServer(socket) {
-      console.log(`***** Un joueur s'est déconnecté`);
-
-      if (gameData.rooms[socket.room].users.length === 1) {
-        gameData.rooms[socket.room].users = []
-        console.log(gameData.rooms[socket.room].users)
-      } else {
-        let historyGames = await checkIfGameEndElseSetAbandon(socket);
-
-        await isNewSucces(socket, historyGames);
-      }
     }
 
     io.on('connection', (socket) => {
@@ -483,15 +467,25 @@ class WebServer {
         gameData.rooms[RoomFull].turns[playerIndex] = [gameData.rooms[RoomFull].userCards[playerIndex][indexPokemon], action, type_action];
 
         // Vérifie si les deux joueurs ont joué leur tour, puis passe au tour suivant si c'est le cas
-        await playCard(RoomFull);
+        await playCard(RoomFull,socket);
       });
 
-      socket.on('normal-end-game' , async () => {
-        await disconnectClientFromServer(socket);
+      socket.on('normal-end-game' , async (room, id_user) => {
+        console.log(`***** Un joueur s'est déconnecté normalement`);
+
+        socket.emit('disconnect-normal');
       });
 
       socket.on('disconnect', async () => {
-        await disconnectClientFromServer(socket);
+        console.log(`***** Un joueur s'est déconnecté`);
+
+        if (gameData.rooms[socket.room].users.length === 1) {
+          gameData.rooms[socket.room].users = []
+        } else {
+          let historyGames = await checkIfGameEndElseSetAbandon(socket);
+
+          await isNewSucces(socket, historyGames);
+        }
       });
     });
   }
