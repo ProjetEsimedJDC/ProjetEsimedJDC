@@ -17,7 +17,7 @@ router.get('/:id_user', async (req, res) => {
         let i = 0
         for (const gameId of allGameId) {
             i++
-            let current_data = {id: i ,result : "", opponent : "", coin_win : "" , date : ""}
+            let current_data = {id: i ,result : "", opponent : "", coins : "" , date : ""}
             let id_game = gameId["id_game"]
 
             let gameHistoryGames = await gameHistoryRepository.getGameHistoryByGameId(id_game)
@@ -27,7 +27,7 @@ router.get('/:id_user', async (req, res) => {
 
                 if (gameHistoryGame.id_user === id_user) {
                     current_data.result = gameHistoryGame.result
-                    current_data.coin_win = current_data.result === 'win' ? "50" : "0"
+                    current_data.coins = current_data.result === 'win' ? "50" : "0"
                 } else {
                     let opponentUser = await userRepository.getUserById(gameHistoryGame.id_user)
                     current_data.opponent = opponentUser.pseudo
