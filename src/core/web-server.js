@@ -325,6 +325,7 @@ class WebServer {
 
     async function isNewSucces(socket, historyGames) {
       try {
+
         let game_user = await gameRepository.getAllGameIdByUserId(socket.user.id_user)
         let games_history_user = await gameHistoryRepository.getAllGameHistoryByUserId(socket.user.id_user)
 
@@ -408,11 +409,33 @@ class WebServer {
 
     }
 
+    async function disconnectClientFromServer(socket) {
+      console.log(`***** Un joueur s'est déconnecté`);
+
+      if (gameData.rooms[socket.room].users.length === 1) {
+        gameData.rooms[socket.room].users = []
+        console.log(gameData.rooms[socket.room].users)
+      } else {
+        let historyGames = await checkIfGameEndElseSetAbandon(socket);
+
+        await isNewSucces(socket, historyGames);
+      }
+    }
+
     io.on('connection', (socket) => {
       console.log(`***** Un joueur s'est connecté`);
 
       // Quand un joueur rejoint une salle, ajoutez-le à la liste des joueurs de la salle
       socket.on('join-room', async (user) => {
+        //Vérifie si l'utilisateur qui rejoint n'a pas le meme id que celui qui est présent dans la room
+        if (gameData.rooms[ROOM].users.length === 1) {
+          if (user.id_user === gameData.rooms[ROOM].users[0].id_user) {
+            socket.emit('same-account')
+            return
+          }
+        }
+
+
         socket.join(ROOM);
 
         // Ajouter le joueur à la liste des utilisateurs de la partie
@@ -459,16 +482,16 @@ class WebServer {
         }
         gameData.rooms[RoomFull].turns[playerIndex] = [gameData.rooms[RoomFull].userCards[playerIndex][indexPokemon], action, type_action];
 
-        // Vérifiez si les deux joueurs ont joué leur tour, puis passez au tour suivant si c'est le cas
+        // Vérifie si les deux joueurs ont joué leur tour, puis passe au tour suivant si c'est le cas
         await playCard(RoomFull);
       });
 
+      socket.on('normal-end-game' , async () => {
+        await disconnectClientFromServer(socket);
+      });
+
       socket.on('disconnect', async () => {
-        console.log(`***** Un joueur s'est déconnecté`);
-        let historyGames = await checkIfGameEndElseSetAbandon(socket);
-
-        await isNewSucces(socket, historyGames);
-
+        await disconnectClientFromServer(socket);
       });
     });
   }
