@@ -134,3 +134,21 @@ Le jeu se termine lorsqu’il n’y a plus de cartes à débloquer.
 
 # Commande
 Pour lancer le projet : npm run start:dev
+
+Pour la preprod, rentrer les variables d'environnement suivantes (environnement de preprod) :
+
+export SECRET_KEY="YOURSECRETKEYGOESHERE"
+
+export JWT_EXPIRES_IN="1h"
+
+export DB_HOST="postgresdatabase.internal"
+
+export DB_PASSWORD="main"
+
+export DB_USER="main"
+
+export DB_NAME="main"
+
+export DB_DIALECT="postgres"
+
+node index.js
