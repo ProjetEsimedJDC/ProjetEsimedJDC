@@ -49,8 +49,8 @@ class WebServer {
     User.belongsToMany(Trophy, { through: User_trophy, foreignKey: 'id_user' });
     Trophy.belongsToMany(User, { through: User_trophy, foreignKey: 'id_trophy' });
 
-    // sequelize.sync();
-    sequelize.sync({ force: true });
+    sequelize.sync();
+    // sequelize.sync({ force: true });
 
     initializeConfigMiddlewares(this.app);
     this._initializeRoutes();
