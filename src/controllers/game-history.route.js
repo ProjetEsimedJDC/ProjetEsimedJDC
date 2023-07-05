@@ -30,7 +30,7 @@ router.get('/:id_user', async (req, res) => {
                     if (current_data.result === 'win'){
                         current_data.coins = "500"
                     }
-                    if (current_data.result === 'loose') {
+                    if (current_data.result === 'lose') {
                         current_data.coins = "250"
                     }
                     if (current_data.result === 'abandon') {
