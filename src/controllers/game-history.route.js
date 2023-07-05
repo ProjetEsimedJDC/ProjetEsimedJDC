@@ -27,7 +27,15 @@ router.get('/:id_user', async (req, res) => {
 
                 if (gameHistoryGame.id_user === id_user) {
                     current_data.result = gameHistoryGame.result
-                    current_data.coins = current_data.result === 'win' ? "50" : "0"
+                    if (current_data.result === 'win'){
+                        current_data.coins = "500"
+                    }
+                    if (current_data.result === 'loose') {
+                        current_data.coins = "250"
+                    }
+                    if (current_data.result === 'abandon') {
+                        current_data.coins = "0"
+                    }
                 } else {
                     let opponentUser = await userRepository.getUserById(gameHistoryGame.id_user)
                     current_data.opponent = opponentUser.pseudo
