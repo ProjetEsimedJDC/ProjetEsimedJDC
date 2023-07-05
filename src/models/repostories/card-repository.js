@@ -7,7 +7,11 @@ exports.getCards = async () => await Card.findAll();
 exports.getCardById = async (id_card) => {
     return await Card.findOne({ where: { id_card } });
 };
-
+/**
+ *
+ * @param id_user
+ * @returns {Promise<*[]>}
+ */
 exports.getCardsUserByUserId = async (id_user) => {
     let user = await userRepository.getUserById(id_user)
 

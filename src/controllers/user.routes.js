@@ -38,6 +38,7 @@ router.get('/seeder', async (req, res) => {
   }
 });
 
+
 router.get('/', async (req, res) => {
   res.send(await userRepository.getUsers());
 });
@@ -123,10 +124,14 @@ router.put('/chose-card/:id_user/:id_card_user/:id_card', async (req, res) => {
 });
 
 // router.delete('/:id',guard.check(['admin']), async (req, res) => {
-// // router.delete('/:id', async (req, res) => {
-//   await userRepository.deleteUser(req.params.id);
-//   res.status(204).end();
-// });
+router.delete('/:id', async (req, res) => {
+  try {
+    await userRepository.deleteUser(req.params.id);
+    res.status(204).end();
+  } catch (e) {
+    res.status(500).send(e.message);
+  }
+});
 
 
 // router.get('/:firstName', guard.check(['admin']), async (req, res) => {

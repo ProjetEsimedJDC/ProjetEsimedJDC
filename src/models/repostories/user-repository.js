@@ -146,7 +146,7 @@ exports.updateCoins = async (id_user, coins) => {
 //     // password: data.password ? hash : foundUser.password,
 //   }, { where: { id_user } });
 // };
-//
-// exports.deleteUser = async (id_user) => {
-//   await User.destroy({ where: { id_user } });
-// }
+//S
+exports.deleteUser = async (id_user) => {
+  await User.destroy({ where: { id_user } });
+}

@@ -13,7 +13,6 @@ router.post('/login',
 
     async (req, res) => {
     const errors = validationResult(req);
-        console.log(errors)
     if (!errors.isEmpty()) {
       return res.status(400).json({ errors: errors.array() });
     }
@@ -25,16 +24,7 @@ router.post('/login',
 
         if(psw === true)
         {
-            const token = jwt.sign({id_user: foundUser.id_user,
-                    // pseudo: foundUser.pseudo,
-                    // email : foundUser.email,
-                    // password : foundUser.password,
-                    // coins : foundUser.coins,
-                    // id_card_1 : foundUser.id_card_1,
-                    // id_card_2 : foundUser.id_card_2,
-                    // id_card_3 : foundUser.id_card_3,
-                    // permissions : [foundUser.isAdmin ? 'admin' : '']
-                },
+            const token = jwt.sign({id_user: foundUser.id_user},
                 process.env.SECRET_KEY , { expiresIn: process.env.JWT_EXPIRES_IN });
             res.status(200).send({token})
         } else {
