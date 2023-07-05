@@ -40,12 +40,13 @@ exports.setResult = async (room,userWinId, userLoseId ) => {
                 await gameHistory.update({
                     result : "win"
                 })
-                await userRepository.updateCoins(gameHistory.id_user, 50)
+                await userRepository.updateCoins(gameHistory.id_user, 500)
 
             } else {
                 await gameHistory.update({
                     result : "lose"
                 })
+                await userRepository.updateCoins(gameHistory.id_user, 250)
             }
         }
 

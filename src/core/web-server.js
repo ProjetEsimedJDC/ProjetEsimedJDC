@@ -390,12 +390,11 @@ class WebServer {
               })
               let user = await userRepository.getUserById(historyGame.id_user)
               io.to(room).emit('end-game', user)
-              await userRepository.updateCoins(historyGame.id_user, 50)
+              await userRepository.updateCoins(historyGame.id_user, 500)
             } else {
               historyGame.update({
                 result: 'abandon'
               })
-              // userRepository.updateCoins(historyGame.id_user, -50)
             }
           }
         }
