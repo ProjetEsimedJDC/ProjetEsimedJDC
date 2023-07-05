@@ -46,6 +46,7 @@ exports.createUser = async (body) => {
 
   user.password = hash;
 
+  user.coins = 1900
   await User.create(user);
 
   return 4;
